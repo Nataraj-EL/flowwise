@@ -24,7 +24,7 @@ export const Sidebar: React.FC = () => {
     { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Transactions', href: '/dashboard/transactions', icon: ArrowRightLeft, disabled: false },
     { name: 'Cash Flow', href: '/dashboard/cashflow', icon: TrendingUp, disabled: false },
-    { name: 'Health & Risk', href: '/dashboard/health', icon: ShieldAlert, disabled: true, tag: 'SOON' },
+    { name: 'Health & Risk', href: '/dashboard/health', icon: ShieldAlert, disabled: false },
     { name: 'Inventory', href: '/dashboard/inventory', icon: Package, disabled: true, tag: 'SOON' },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings, disabled: true, tag: 'SOON' },
   ];

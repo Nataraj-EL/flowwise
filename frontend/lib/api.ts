@@ -83,6 +83,23 @@ export interface BackendCashFlowSummaryDTO {
   liquidityStatus: 'OPTIMAL' | 'MODERATE' | 'CRITICAL';
 }
 
+export interface BackendHealthFactorDTO {
+  factorName: string;
+  score: number;
+  maxScore: number;
+  trend: 'IMPROVING' | 'STABLE' | 'DETERIORATING';
+  explanation: string;
+}
+
+export interface BackendBusinessHealthDTO {
+  overallScore: number;
+  healthStatus: 'HEALTHY' | 'WATCH' | 'AT_RISK';
+  factorScores: BackendHealthFactorDTO[];
+  positiveSignals: string[];
+  riskSignals: string[];
+  summaryExplanation: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -155,5 +172,13 @@ export async function fetchMerchantMonthlyCashFlow(merchantId: number | string):
   if (!res.ok) throw new Error(`Failed to fetch monthly cash flow for merchant ID ${merchantId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendMonthlyCashFlowDTO[]> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to retrieve monthly cash flow');
+  return json.data;
+}
+
+export async function fetchMerchantHealth(merchantId: number | string): Promise<BackendBusinessHealthDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/health`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch business health for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendBusinessHealthDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve business health');
   return json.data;
 }

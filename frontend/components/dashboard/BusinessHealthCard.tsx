@@ -1,22 +1,22 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { fetchMerchantCashFlowSummary, BackendCashFlowSummaryDTO } from '@/lib/api';
+import { fetchMerchantHealth, BackendBusinessHealthDTO } from '@/lib/api';
 import { DEMO_HEALTH } from '@/lib/mock-data';
-import { formatINR } from '@/lib/utils';
-import { Activity, ShieldCheck, Zap, AlertTriangle } from 'lucide-react';
+import { Activity, ShieldCheck, Zap, AlertTriangle, ExternalLink, CheckCircle2 } from 'lucide-react';
 
 export const BusinessHealthCard: React.FC = () => {
-  const [cashFlowSummary, setCashFlowSummary] = useState<BackendCashFlowSummaryDTO | null>(null);
+  const [healthData, setHealthData] = useState<BackendBusinessHealthDTO | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     async function loadData() {
       try {
-        const data = await fetchMerchantCashFlowSummary(1);
-        setCashFlowSummary(data);
+        const data = await fetchMerchantHealth(1);
+        setHealthData(data);
       } catch (err) {
         // Fallback to static demo baseline if API is offline
       } finally {
@@ -26,18 +26,16 @@ export const BusinessHealthCard: React.FC = () => {
     loadData();
   }, []);
 
-  const overallScore = cashFlowSummary ? (cashFlowSummary.liquidityStatus === 'OPTIMAL' ? 88 : cashFlowSummary.liquidityStatus === 'MODERATE' ? 65 : 42) : DEMO_HEALTH.overallScore;
-  const statusText = cashFlowSummary ? cashFlowSummary.liquidityStatus : DEMO_HEALTH.statusText;
-  const runwayMonths = cashFlowSummary ? cashFlowSummary.cashRunwayMonths : DEMO_HEALTH.runwayMonths;
-  const burnRateMonthly = cashFlowSummary ? cashFlowSummary.burnRate : DEMO_HEALTH.burnRateMonthly;
-  const recurringEstimate = cashFlowSummary ? cashFlowSummary.recurringExpensesEstimate : 269200;
+  const overallScore = healthData ? healthData.overallScore : DEMO_HEALTH.overallScore;
+  const statusText = healthData ? healthData.healthStatus : DEMO_HEALTH.statusText;
+  const factors = healthData ? healthData.factorScores : [];
 
   // SVG Radial calculation
   const circumference = 2 * Math.PI * 40;
   const strokeDashoffset = circumference - (overallScore / 100) * circumference;
 
   return (
-    <Card variant={statusText === 'OPTIMAL' ? 'glow-emerald' : 'glow-cyan'} className="flex flex-col justify-between space-y-6">
+    <Card variant={statusText === 'HEALTHY' ? 'glow-emerald' : 'glow-cyan'} className="flex flex-col justify-between space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/10 pb-4">
         <div className="flex items-center gap-2">
@@ -47,14 +45,20 @@ export const BusinessHealthCard: React.FC = () => {
               Business Health Index
             </h3>
             <p className="text-[11px] text-slate-400 font-mono">
-              Liquidity Engine Diagnostics
+              Spring Boot Deterministic Diagnostics Engine
             </p>
           </div>
         </div>
-        <Badge variant={statusText === 'OPTIMAL' ? 'emerald' : statusText === 'MODERATE' ? 'amber' : 'rose'} className="gap-1">
-          <ShieldCheck className="w-3.5 h-3.5" />
-          {statusText} STATUS
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant={statusText === 'HEALTHY' ? 'emerald' : statusText === 'WATCH' ? 'amber' : 'rose'} className="gap-1">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            {statusText}
+          </Badge>
+          <Link href="/dashboard/health" className="text-xs font-mono text-[#00F0FF] hover:underline flex items-center gap-1">
+            <span>Console</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </Link>
+        </div>
       </div>
 
       {loading ? (
@@ -77,7 +81,7 @@ export const BusinessHealthCard: React.FC = () => {
                 cx="72"
                 cy="72"
                 r="40"
-                stroke={statusText === 'OPTIMAL' ? '#00E599' : statusText === 'MODERATE' ? '#FFB800' : '#FF4757'}
+                stroke={statusText === 'HEALTHY' ? '#00E599' : statusText === 'WATCH' ? '#FFB800' : '#FF4757'}
                 strokeWidth="10"
                 fill="transparent"
                 strokeDasharray={circumference}
@@ -96,69 +100,58 @@ export const BusinessHealthCard: React.FC = () => {
             </div>
           </div>
 
-          {/* Breakdown Stats */}
-          <div className="space-y-4 font-mono">
-            <div>
-              <div className="flex justify-between text-xs text-slate-300 mb-1">
-                <span className="flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5 text-[#00F0FF]" />
-                  Liquidity Velocity
-                </span>
-                <span className="font-bold text-[#00F0FF]">
-                  {statusText === 'OPTIMAL' ? '92%' : statusText === 'MODERATE' ? '68%' : '45%'}
-                </span>
+          {/* Factor Scores Breakdown */}
+          <div className="space-y-3 font-mono">
+            {factors.length > 0 ? (
+              factors.slice(0, 3).map((f) => {
+                const pct = Math.round((f.score / f.maxScore) * 100);
+                return (
+                  <div key={f.factorName}>
+                    <div className="flex justify-between text-xs text-slate-300 mb-1">
+                      <span>{f.factorName}</span>
+                      <span className="font-bold text-[#00F0FF]">
+                        {f.score}/{f.maxScore}
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full bg-white/5 border border-white/10">
+                      <div
+                        className="h-full bg-[#00F0FF]"
+                        style={{ width: `${pct}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="p-3 bg-[#07080B] border border-white/10 text-xs text-slate-400">
+                Deterministic 5-factor scoring model initialized.
               </div>
-              <div className="h-1.5 w-full bg-white/5 border border-white/10">
-                <div
-                  className="h-full bg-[#00F0FF] shadow-[0_0_8px_#00F0FF]"
-                  style={{ width: statusText === 'OPTIMAL' ? '92%' : statusText === 'MODERATE' ? '68%' : '45%' }}
-                ></div>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between text-xs text-slate-300 mb-1">
-                <span className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#00E599]" />
-                  Solvency Cushion
-                </span>
-                <span className="font-bold text-[#00E599]">
-                  {statusText === 'OPTIMAL' ? '84%' : statusText === 'MODERATE' ? '60%' : '38%'}
-                </span>
-              </div>
-              <div className="h-1.5 w-full bg-white/5 border border-white/10">
-                <div
-                  className="h-full bg-[#00E599] shadow-[0_0_8px_#00E599]"
-                  style={{ width: statusText === 'OPTIMAL' ? '84%' : statusText === 'MODERATE' ? '60%' : '38%' }}
-                ></div>
-              </div>
-            </div>
-
-            <div className="p-3 bg-[#07080B] border border-white/10 space-y-1">
-              <div className="flex justify-between text-xs text-slate-400">
-                <span>Calculated Cash Runway</span>
-                <span className="text-white font-bold">{runwayMonths} Months</span>
-              </div>
-              <div className="flex justify-between text-[11px] text-slate-500">
-                <span>Monthly Burn Rate</span>
-                <span>{formatINR(burnRateMonthly)}</span>
-              </div>
-              <div className="flex justify-between text-[10px] text-slate-500 border-t border-white/5 pt-1">
-                <span>Recurring Cost Estimate</span>
-                <span>{formatINR(recurringEstimate)}</span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Health Insight Footer Note */}
-      <div className="text-xs text-slate-400 font-mono flex items-center gap-2 border-t border-white/10 pt-3">
-        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-        <span>
-          Liquidity diagnostics calculated directly by Spring Boot `CashFlowService` using Java `BigDecimal` arithmetic.
-        </span>
-      </div>
+      {/* Positive & Risk Signals */}
+      {healthData && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono border-t border-white/10 pt-4">
+          {healthData.positiveSignals.length > 0 && (
+            <div className="p-2.5 bg-[#00E599]/5 border border-[#00E599]/20 space-y-1">
+              <span className="text-[#00E599] font-bold flex items-center gap-1 text-[11px]">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Positive Signal
+              </span>
+              <p className="text-[11px] text-slate-300">{healthData.positiveSignals[0]}</p>
+            </div>
+          )}
+          {healthData.riskSignals.length > 0 && (
+            <div className="p-2.5 bg-rose-500/5 border border-rose-500/20 space-y-1">
+              <span className="text-rose-400 font-bold flex items-center gap-1 text-[11px]">
+                <AlertTriangle className="w-3.5 h-3.5" /> Risk Factor
+              </span>
+              <p className="text-[11px] text-slate-300">{healthData.riskSignals[0]}</p>
+            </div>
+          )}
+        </div>
+      )}
     </Card>
   );
 };

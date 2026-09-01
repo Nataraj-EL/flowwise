@@ -1,22 +1,25 @@
 package com.flowwise.controller;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Map;
+import com.flowwise.dto.ApiResponse;
+import com.flowwise.dto.BusinessHealthDTO;
+import com.flowwise.service.BusinessHealthService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/health")
+@RequestMapping("/api/v1/merchants/{merchantId}/health")
+@CrossOrigin(origins = "*")
 public class HealthController {
 
+    private final BusinessHealthService businessHealthService;
+
+    public HealthController(BusinessHealthService businessHealthService) {
+        this.businessHealthService = businessHealthService;
+    }
+
     @GetMapping
-    public Map<String, Object> getHealthStatus() {
-        return Map.of(
-            "status", "UP",
-            "service", "Flowwise Engine Backend",
-            "environment", "DEMO",
-            "timestamp", System.currentTimeMillis()
-        );
+    public ResponseEntity<ApiResponse<BusinessHealthDTO>> getBusinessHealth(@PathVariable Long merchantId) {
+        BusinessHealthDTO health = businessHealthService.calculateBusinessHealth(merchantId);
+        return ResponseEntity.ok(ApiResponse.success(health));
     }
 }
