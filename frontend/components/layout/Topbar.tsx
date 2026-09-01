@@ -16,11 +16,24 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 
-export const Topbar: React.FC = () => {
+export interface TopbarProps {
+  currentMerchantName?: string;
+  currentDemoGstin?: string;
+  onMerchantSelect?: (id: number) => void;
+}
+
+export const Topbar: React.FC<TopbarProps> = ({
+  currentMerchantName,
+  currentDemoGstin,
+  onMerchantSelect,
+}) => {
   const [selectedMerchant, setSelectedMerchant] = useState<MerchantProfile>(
     DEMO_MERCHANTS[0]
   );
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const merchantName = currentMerchantName || selectedMerchant.name;
+  const demoGstin = currentDemoGstin || selectedMerchant.demoGstin;
 
   return (
     <header className="h-20 bg-[#08090C] border-b border-white/10 px-4 sm:px-6 flex items-center justify-between gap-4 sticky top-0 z-20">
@@ -35,10 +48,10 @@ export const Topbar: React.FC = () => {
           </div>
           <div className="flex flex-col">
             <span className="text-xs font-bold text-white tracking-wider truncate max-w-[160px] sm:max-w-[220px]">
-              {selectedMerchant.name}
+              {merchantName}
             </span>
             <span className="text-[10px] text-slate-400">
-              GST: {selectedMerchant.demoGstin}
+              GST: {demoGstin}
             </span>
           </div>
           <ChevronDown className="w-4 h-4 text-slate-400 ml-1" />
@@ -51,12 +64,15 @@ export const Topbar: React.FC = () => {
               Select Demo Merchant Profile
             </div>
             <div className="py-1">
-              {DEMO_MERCHANTS.map((m) => (
+              {DEMO_MERCHANTS.map((m, idx) => (
                 <button
                   key={m.id}
                   onClick={() => {
                     setSelectedMerchant(m);
                     setDropdownOpen(false);
+                    if (onMerchantSelect) {
+                      onMerchantSelect(idx + 1);
+                    }
                   }}
                   className="w-full text-left px-3 py-2.5 hover:bg-white/5 flex items-center justify-between text-xs transition-colors"
                 >
@@ -64,7 +80,7 @@ export const Topbar: React.FC = () => {
                     <div className="font-bold text-white">{m.name}</div>
                     <div className="text-[10px] text-slate-400">{m.category}</div>
                   </div>
-                  {selectedMerchant.id === m.id && (
+                  {merchantName === m.name && (
                     <Check className="w-4 h-4 text-[#00F0FF]" />
                   )}
                 </button>
