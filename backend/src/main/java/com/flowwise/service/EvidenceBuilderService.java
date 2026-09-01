@@ -23,6 +23,7 @@ public class EvidenceBuilderService {
     private final FinancialActionService actionService;
     private final ReceivablesService receivablesService;
     private final PayablesService payablesService;
+    private final WorkingCapitalService workingCapitalService;
 
     public EvidenceBuilderService(MerchantRepository merchantRepository,
                                   MerchantService merchantService,
@@ -33,7 +34,8 @@ public class EvidenceBuilderService {
                                   ForecastingService forecastingService,
                                   FinancialActionService actionService,
                                   ReceivablesService receivablesService,
-                                  PayablesService payablesService) {
+                                  PayablesService payablesService,
+                                  WorkingCapitalService workingCapitalService) {
         this.merchantRepository = merchantRepository;
         this.merchantService = merchantService;
         this.cashFlowService = cashFlowService;
@@ -44,6 +46,7 @@ public class EvidenceBuilderService {
         this.actionService = actionService;
         this.receivablesService = receivablesService;
         this.payablesService = payablesService;
+        this.workingCapitalService = workingCapitalService;
     }
 
     public FinancialEvidenceSummaryDTO buildEvidenceSummary(Long merchantId, String question) {
@@ -58,7 +61,9 @@ public class EvidenceBuilderService {
         String qLower = question.toLowerCase(Locale.ROOT);
         
         // 1. Detect Intent Category
-        if (qLower.contains("payable") || qLower.contains("bill") || qLower.contains("vendor") || qLower.contains("owe") || qLower.contains("rent") || qLower.contains("utility")) {
+        if (qLower.contains("working capital") || qLower.contains("obligation") || qLower.contains("stuck") || qLower.contains("coverage") || qLower.contains("gap") || qLower.contains("biggest cash pressure")) {
+            return buildWorkingCapitalEvidence(merchantId, question);
+        } else if (qLower.contains("payable") || qLower.contains("bill") || qLower.contains("vendor") || qLower.contains("owe") || qLower.contains("rent") || qLower.contains("utility")) {
             return buildPayablesEvidence(merchantId, question);
         } else if (qLower.contains("owed") || qLower.contains("receivable") || qLower.contains("unpaid") || qLower.contains("debtor") || qLower.contains("concentration")) {
             return buildReceivablesEvidence(merchantId, question);
@@ -280,6 +285,30 @@ public class EvidenceBuilderService {
                 assumptions,
                 pay.getTotalOverdue().compareTo(BigDecimal.ZERO) > 0 ? "ACTION_REQUIRED" : "HEALTHY",
                 conclusion
+        );
+    }
+
+    private FinancialEvidenceSummaryDTO buildWorkingCapitalEvidence(Long merchantId, String question) {
+        WorkingCapitalSummaryDTO wc = workingCapitalService.getWorkingCapitalSummary(merchantId);
+
+        List<EvidenceItemDTO> items = new ArrayList<>();
+        items.add(new EvidenceItemDTO("Net Working Capital", wc.getNetWorkingCapital(), "INR", "Working Capital Engine", "Derived Balance Sheet", "ACTUAL", "Available cash + Receivables outstanding - Payables outstanding", "HIGH"));
+        items.add(new EvidenceItemDTO("Available Cash Reserves", wc.getAvailableCash(), "INR", "Cash Flow Engine", "Business Accounts", "ACTUAL", "Liquid balance across connected business accounts", "HIGH"));
+        items.add(new EvidenceItemDTO("Receivables Outstanding", wc.getReceivablesOutstanding(), "INR", "Receivables Engine", "Active Ledger", "ACTUAL", "Uncollected B2B customer invoices", "HIGH"));
+        items.add(new EvidenceItemDTO("Payables Outstanding", wc.getPayablesOutstanding(), "INR", "Payables Engine", "Vendor Ledger", "ACTUAL", "Unpaid vendor bills and obligations", "HIGH"));
+        items.add(new EvidenceItemDTO("Working Capital Gap", wc.getWorkingCapitalGap(), "INR", "Working Capital Engine", "Gap Analysis", "ACTUAL", "Payables outstanding minus Receivables outstanding", "HIGH"));
+        items.add(new EvidenceItemDTO("Current Coverage Ratio", wc.getCurrentCoverageRatio(), "Ratio (x)", "Working Capital Engine", "Liquidity Analysis", "ACTUAL", "Ratio of liquid assets to total payables outstanding", "HIGH"));
+        items.add(new EvidenceItemDTO("Near-Term Coverage Ratio", wc.getNearTermCoverageRatio(), "Ratio (x)", "Working Capital Engine", "Pressure Window", "ACTUAL", "Ratio of near-term cash + 30-day collection potential to short-term pressure", "HIGH"));
+
+        List<String> assumptions = wc.getTopPressureDrivers();
+
+        return new FinancialEvidenceSummaryDTO(
+                question,
+                "WORKING_CAPITAL",
+                items,
+                assumptions,
+                "HIGH_RISK".equalsIgnoreCase(wc.getCashConversionRiskStatus()) ? "ACTION_REQUIRED" : "HEALTHY",
+                wc.getSummaryExplanation()
         );
     }
 }

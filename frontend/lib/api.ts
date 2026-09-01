@@ -365,6 +365,21 @@ export interface BackendPayablesSummaryDTO {
   payables: BackendPayableDTO[];
 }
 
+export interface BackendWorkingCapitalSummaryDTO {
+  netWorkingCapital: number;
+  availableCash: number;
+  receivablesOutstanding: number;
+  payablesOutstanding: number;
+  workingCapitalGap: number;
+  currentCoverageRatio: number;
+  nearTermCoverageRatio: number;
+  cashConversionRiskStatus: 'OPTIMAL' | 'MODERATE' | 'HIGH_RISK';
+  nearTermCollectionPotential: number;
+  upcomingPayablePressure: number;
+  topPressureDrivers: string[];
+  summaryExplanation: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -668,5 +683,13 @@ export async function fetchMerchantPayablesSummary(merchantId: number | string):
   if (!res.ok) throw new Error(`Failed to fetch payables summary for merchant ID ${merchantId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendPayablesSummaryDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to retrieve payables summary');
+  return json.data;
+}
+
+export async function fetchMerchantWorkingCapital(merchantId: number | string): Promise<BackendWorkingCapitalSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/working-capital`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch working capital for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendWorkingCapitalSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve working capital summary');
   return json.data;
 }

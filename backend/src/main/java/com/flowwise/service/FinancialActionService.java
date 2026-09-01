@@ -24,6 +24,7 @@ public class FinancialActionService {
     private final TemporalIntelligenceService temporalService;
     private final ReceivablesService receivablesService;
     private final PayablesService payablesService;
+    private final WorkingCapitalService workingCapitalService;
 
     public FinancialActionService(MerchantRepository merchantRepository,
                                   FinancialActionRepository actionRepository,
@@ -31,7 +32,8 @@ public class FinancialActionService {
                                   BusinessHealthService healthService,
                                   TemporalIntelligenceService temporalService,
                                   ReceivablesService receivablesService,
-                                  PayablesService payablesService) {
+                                  PayablesService payablesService,
+                                  WorkingCapitalService workingCapitalService) {
         this.merchantRepository = merchantRepository;
         this.actionRepository = actionRepository;
         this.cashFlowService = cashFlowService;
@@ -39,6 +41,7 @@ public class FinancialActionService {
         this.temporalService = temporalService;
         this.receivablesService = receivablesService;
         this.payablesService = payablesService;
+        this.workingCapitalService = workingCapitalService;
     }
 
     public ActionSummaryDTO getMerchantActions(Long merchantId) {
@@ -191,7 +194,22 @@ public class FinancialActionService {
                 );
             }
 
-            // Rule 8: Low Priority Opportunity / Healthy Position
+            // Rule 8: High Priority Working Capital Coverage Deficit
+            WorkingCapitalSummaryDTO wc = workingCapitalService.getWorkingCapitalSummary(merchantId);
+            if (wc.getNearTermCoverageRatio() != null && wc.getNearTermCoverageRatio().compareTo(new BigDecimal("1.00")) < 0) {
+                createOrUpdateAction(
+                        merchantId,
+                        "ACT-WORKING-CAPITAL-DEFICIT",
+                        "Working Capital Coverage Deficit (" + wc.getNearTermCoverageRatio() + "x Ratio)",
+                        "HIGH",
+                        "RUNWAY_RISK",
+                        "Available cash and 30-day receivables collection potential (" + wc.getNearTermCoverageRatio() + "x) are insufficient to comfortably cover near-term payment pressure of ₹" + wc.getUpcomingPayablePressure() + ".",
+                        "Net Working Capital: ₹" + wc.getNetWorkingCapital() + " | Near-Term Coverage: " + wc.getNearTermCoverageRatio() + "x | Gap: ₹" + wc.getWorkingCapitalGap(),
+                        "Accelerate receivables collection from " + recv.getLargestOutstandingCounterparty() + " to close the ₹" + wc.getWorkingCapitalGap() + " working capital gap."
+                );
+            }
+
+            // Rule 9: Low Priority Opportunity / Healthy Position
             if (health.getOverallScore() >= 70) {
                 createOrUpdateAction(
                         merchantId,
