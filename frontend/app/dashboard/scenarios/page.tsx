@@ -211,15 +211,15 @@ export default function ScenariosPage() {
               <div className="p-3 bg-[#05080E] border border-white/5 text-[11px] font-mono space-y-1 text-slate-300">
                 <div className="flex justify-between">
                   <span className="text-slate-500">Revenue Mod:</span>
-                  <span className={dto.revenueModifierPct < 0 ? 'text-rose-400' : 'text-emerald-400'}>{dto.revenueModifierPct}%</span>
+                  <span className={(dto.revenueModifierPct ?? 0) < 0 ? 'text-rose-400' : 'text-emerald-400'}>{dto.revenueModifierPct ?? 0}%</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Expense Mod:</span>
-                  <span className={dto.expenseModifierPct > 0 ? 'text-amber-400' : 'text-slate-300'}>+{dto.expenseModifierPct}%</span>
+                  <span className={(dto.expenseModifierPct ?? 0) > 0 ? 'text-amber-400' : 'text-slate-300'}>+{(dto.expenseModifierPct ?? 0)}%</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Rec Collection:</span>
-                  <span className="text-cyan-400">{dto.receivableCollectionPct}%</span>
+                  <span className="text-cyan-400">{dto.receivableCollectionPct ?? 100}%</span>
                 </div>
               </div>
 
@@ -229,19 +229,19 @@ export default function ScenariosPage() {
                 <div className="grid grid-cols-2 gap-2 text-xs font-mono">
                   <div className="p-2 bg-[#05080E] border border-white/5">
                     <span className="text-[10px] text-slate-500 block">7-Day:</span>
-                    <span className="text-white font-bold">₹{dto.projected7dCash.toLocaleString('en-IN')}</span>
+                    <span className="text-white font-bold">₹{(dto.projected7dCash ?? 0).toLocaleString('en-IN')}</span>
                   </div>
                   <div className="p-2 bg-[#05080E] border border-white/5">
                     <span className="text-[10px] text-slate-500 block">30-Day:</span>
-                    <span className="text-white font-bold">₹{dto.projected30dCash.toLocaleString('en-IN')}</span>
+                    <span className="text-white font-bold">₹{(dto.projected30dCash ?? 0).toLocaleString('en-IN')}</span>
                   </div>
                   <div className="p-2 bg-[#05080E] border border-white/5">
                     <span className="text-[10px] text-slate-500 block">60-Day:</span>
-                    <span className="text-cyan-300 font-bold">₹{dto.projected60dCash.toLocaleString('en-IN')}</span>
+                    <span className="text-cyan-300 font-bold">₹{(dto.projected60dCash ?? 0).toLocaleString('en-IN')}</span>
                   </div>
                   <div className="p-2 bg-[#05080E] border border-white/5">
                     <span className="text-[10px] text-slate-500 block">90-Day:</span>
-                    <span className="text-cyan-300 font-bold">₹{dto.projected90dCash.toLocaleString('en-IN')}</span>
+                    <span className="text-cyan-300 font-bold">₹{(dto.projected90dCash ?? 0).toLocaleString('en-IN')}</span>
                   </div>
                 </div>
               </div>
@@ -383,19 +383,19 @@ export default function ScenariosPage() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
                 <div className="p-3 bg-[#05080E] border border-white/5 space-y-1">
                   <span className="text-slate-500 block text-[10px]">7-Day Cash:</span>
-                  <span className="text-white font-bold text-sm">₹{customResult.projected7dCash.toLocaleString('en-IN')}</span>
+                  <span className="text-white font-bold text-sm">₹{(customResult.projected7dCash ?? 0).toLocaleString('en-IN')}</span>
                 </div>
                 <div className="p-3 bg-[#05080E] border border-white/5 space-y-1">
                   <span className="text-slate-500 block text-[10px]">30-Day Cash:</span>
-                  <span className="text-white font-bold text-sm">₹{customResult.projected30dCash.toLocaleString('en-IN')}</span>
+                  <span className="text-white font-bold text-sm">₹{(customResult.projected30dCash ?? 0).toLocaleString('en-IN')}</span>
                 </div>
                 <div className="p-3 bg-[#05080E] border border-white/5 space-y-1">
                   <span className="text-slate-500 block text-[10px]">60-Day Cash:</span>
-                  <span className="text-cyan-300 font-bold text-sm">₹{customResult.projected60dCash.toLocaleString('en-IN')}</span>
+                  <span className="text-cyan-300 font-bold text-sm">₹{(customResult.projected60dCash ?? 0).toLocaleString('en-IN')}</span>
                 </div>
                 <div className="p-3 bg-[#05080E] border border-white/5 space-y-1">
                   <span className="text-slate-500 block text-[10px]">90-Day Cash:</span>
-                  <span className="text-cyan-300 font-bold text-sm">₹{customResult.projected90dCash.toLocaleString('en-IN')}</span>
+                  <span className="text-cyan-300 font-bold text-sm">₹{(customResult.projected90dCash ?? 0).toLocaleString('en-IN')}</span>
                 </div>
               </div>
 

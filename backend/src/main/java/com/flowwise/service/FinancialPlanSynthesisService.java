@@ -63,7 +63,7 @@ public class FinancialPlanSynthesisService {
 
         String focusArea = "Accelerate Overdue Receivables & Audit Expense Spikes";
         String summaryExp = planHorizon + " Synthesis Financial Plan: Priority focused on recovering ₹53,240 distributor receivables and containing vendor inventory cost surge.";
-        String assumptions = "Plan items synthesize risks, anomalies, correlations, interventions, and learned strategy multipliers without automated fund execution.";
+        String assumptions = "Plan items synthesize risks, anomalies, correlations, interventions, outcomes, learned strategy multipliers, and evaluated scenario evidence (SIMULATED_ESTIMATE) without automated fund execution.";
 
         // Deactivate existing ACTIVE plan for this horizon if present
         Optional<FinancialPlan> activeOpt = planRepository.findByMerchantIdAndHorizonAndStatus(merchantId, planHorizon, "ACTIVE");

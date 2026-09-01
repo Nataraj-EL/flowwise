@@ -608,30 +608,6 @@ export interface BackendScenarioSimulationRequestDTO {
   saveScenario?: boolean;
 }
 
-export interface BackendFinancialScenarioDTO {
-  id?: number;
-  merchantId: number;
-  scenarioType: string;
-  name: string;
-  description: string;
-  revenueModifierPct: number;
-  expenseModifierPct: number;
-  receivableCollectionPct: number;
-  payableAccelerationPct: number;
-  projected7dCash: number;
-  projected30dCash: number;
-  projected60dCash: number;
-  projected90dCash: number;
-  runwayMonths: number;
-  riskStatus: 'FEASIBLE' | 'CAUTION' | 'HIGH_RISK';
-  goalAchievable: boolean;
-  goalStatusDetail?: string;
-  assumptions: string;
-  estimate: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export interface BackendScenarioComparisonDTO {
   currentAvailableCash: number;
   currentMonthlyBurnRate: number;
@@ -1026,6 +1002,66 @@ export interface BackendFinancialPlanOutcomeSummaryDTO {
   averageEffectivenessScore: number;
   outcomes: BackendFinancialPlanOutcomeDTO[];
   optimizationFactors: BackendPlanOptimizationDTO[];
+  summaryExplanation: string;
+  advisoryNotice: string;
+}
+
+export interface BackendFinancialScenarioItemDTO {
+  id: number;
+  scenarioId: number;
+  interventionType: string;
+  interventionId: number;
+  rankOrder: number;
+  projectedImpact: number;
+  projectedRiskReduction: number;
+  projectedGoalImpact: number;
+  evidenceMetrics: string;
+}
+
+export interface BackendFinancialScenarioDTO {
+  id: number;
+  merchantId: number;
+  scenarioKey?: string;
+  scenarioName?: string;
+  scenarioType?: string;
+  name?: string;
+  description?: string;
+  revenueModifierPct?: number;
+  expenseModifierPct?: number;
+  receivableCollectionPct?: number;
+  payableAccelerationPct?: number;
+  projected7dCash?: number;
+  projected30dCash?: number;
+  projected60dCash?: number;
+  projected90dCash?: number;
+  runwayMonths?: number;
+  riskStatus?: 'FEASIBLE' | 'CAUTION' | 'HIGH_RISK';
+  goalAchievable?: boolean;
+  goalStatusDetail?: string;
+  horizon?: string;
+  status?: 'DRAFT' | 'EVALUATED' | 'ARCHIVED';
+  baselineScore?: number;
+  projectedScore?: number;
+  scoreDelta?: number;
+  projectedCashImpact?: number;
+  projectedRiskReduction?: number;
+  projectedGoalImpact?: number;
+  confidenceStatus?: 'HIGH' | 'MODERATE' | 'LIMITED' | 'INSUFFICIENT_DATA';
+  assumptions?: string;
+  evidenceMetrics?: string;
+  items?: BackendFinancialScenarioItemDTO[];
+  evaluatedAt?: string;
+}
+
+export interface BackendFinancialScenarioSummaryDTO {
+  merchantId: number;
+  totalEvaluatedScenariosCount: number;
+  activeHorizon: string;
+  baselineScore: number;
+  topProjectedScore: number;
+  topRankedScenarioName: string;
+  topRankedScenario: BackendFinancialScenarioDTO;
+  scenarios: BackendFinancialScenarioDTO[];
   summaryExplanation: string;
   advisoryNotice: string;
 }
@@ -1637,12 +1673,12 @@ export async function fetchMerchantScenarioComparison(merchantId: number | strin
 
 export async function simulateScenario(
   merchantId: number | string,
-  request: BackendScenarioSimulationRequestDTO
+  scenario: BackendScenarioSimulationRequestDTO | BackendScenarioRequestDTO
 ): Promise<BackendFinancialScenarioDTO> {
   const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/scenarios/simulate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
+    body: JSON.stringify(scenario),
     cache: 'no-store',
   });
   if (!res.ok) throw new Error(`Failed to simulate scenario for merchant ID ${merchantId} (HTTP ${res.status})`);
@@ -2020,5 +2056,62 @@ export async function evaluatePlanOutcome(
   if (!res.ok) throw new Error(`Failed to evaluate plan outcome for plan ID ${planId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendFinancialPlanOutcomeDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to evaluate plan outcome');
+  return json.data;
+}
+
+export async function fetchMerchantScenarioSummary(
+  merchantId: number | string,
+  horizon?: string
+): Promise<BackendFinancialScenarioSummaryDTO> {
+  const queryString = horizon ? `?horizon=${horizon}` : '';
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/financial-scenarios${queryString}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch financial scenarios for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialScenarioSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve scenario summary');
+  return json.data;
+}
+
+export async function fetchScenarioById(
+  merchantId: number | string,
+  scenarioId: number | string
+): Promise<BackendFinancialScenarioDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/financial-scenarios/${scenarioId}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch scenario ID ${scenarioId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialScenarioDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve scenario');
+  return json.data;
+}
+
+export async function evaluateScenario(
+  merchantId: number | string,
+  horizon?: string,
+  scenarioName?: string
+): Promise<BackendFinancialScenarioSummaryDTO> {
+  const params = new URLSearchParams();
+  if (horizon) params.append('horizon', horizon);
+  if (scenarioName) params.append('scenarioName', scenarioName);
+
+  const queryString = params.toString() ? `?${params.toString()}` : '';
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/financial-scenarios/evaluate${queryString}`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to evaluate scenario for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialScenarioSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to evaluate scenario');
+  return json.data;
+}
+
+export async function archiveScenario(
+  merchantId: number | string,
+  scenarioId: number | string
+): Promise<BackendFinancialScenarioDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/financial-scenarios/${scenarioId}/archive`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to archive scenario ID ${scenarioId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialScenarioDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to archive scenario');
   return json.data;
 }
