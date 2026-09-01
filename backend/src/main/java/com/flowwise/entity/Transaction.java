@@ -50,6 +50,15 @@ public class Transaction {
     @Column(name = "status", nullable = false)
     private String status; // SETTLED, PENDING, SCHEDULED
 
+    @Column(name = "source_type")
+    private String sourceType = "BANK_FEED"; // BANK_FEED, OFFICE_KIT
+
+    @Column(name = "source_capture_id")
+    private Long sourceCaptureId;
+
+    @Column(name = "ingestion_timestamp")
+    private Instant ingestionTimestamp;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -125,6 +134,15 @@ public class Transaction {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getSourceType() { return sourceType; }
+    public void setSourceType(String sourceType) { this.sourceType = sourceType; }
+
+    public Long getSourceCaptureId() { return sourceCaptureId; }
+    public void setSourceCaptureId(Long sourceCaptureId) { this.sourceCaptureId = sourceCaptureId; }
+
+    public Instant getIngestionTimestamp() { return ingestionTimestamp; }
+    public void setIngestionTimestamp(Instant ingestionTimestamp) { this.ingestionTimestamp = ingestionTimestamp; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

@@ -4,6 +4,7 @@ import com.flowwise.dto.ApiResponse;
 import com.flowwise.dto.DocumentCaptureRequestDTO;
 import com.flowwise.dto.DocumentCaptureResponseDTO;
 import com.flowwise.dto.DocumentConfirmRequestDTO;
+import com.flowwise.dto.DocumentIngestResponseDTO;
 import com.flowwise.service.OfficeKitService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -60,6 +61,14 @@ public class OfficeKitController {
             @PathVariable Long captureId) {
 
         DocumentCaptureResponseDTO response = officeKitService.discardCapture(captureId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/api/v1/office-kit/captures/{captureId}/ingest")
+    public ResponseEntity<ApiResponse<DocumentIngestResponseDTO>> ingestCapture(
+            @PathVariable Long captureId) {
+
+        DocumentIngestResponseDTO response = officeKitService.ingestCapture(captureId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

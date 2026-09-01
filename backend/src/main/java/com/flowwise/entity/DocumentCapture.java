@@ -54,6 +54,15 @@ public class DocumentCapture {
     @Column(name = "extracted_reference")
     private String extractedReference;
 
+    @Column(name = "ingested", nullable = false)
+    private Boolean ingested = false;
+
+    @Column(name = "ingested_transaction_id")
+    private Long ingestedTransactionId;
+
+    @Column(name = "ingested_at")
+    private OffsetDateTime ingestedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
@@ -119,6 +128,15 @@ public class DocumentCapture {
 
     public String getExtractedReference() { return extractedReference; }
     public void setExtractedReference(String extractedReference) { this.extractedReference = extractedReference; }
+
+    public Boolean getIngested() { return ingested != null ? ingested : false; }
+    public void setIngested(Boolean ingested) { this.ingested = ingested; }
+
+    public Long getIngestedTransactionId() { return ingestedTransactionId; }
+    public void setIngestedTransactionId(Long ingestedTransactionId) { this.ingestedTransactionId = ingestedTransactionId; }
+
+    public OffsetDateTime getIngestedAt() { return ingestedAt; }
+    public void setIngestedAt(OffsetDateTime ingestedAt) { this.ingestedAt = ingestedAt; }
 
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }

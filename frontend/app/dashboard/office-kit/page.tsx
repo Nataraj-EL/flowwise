@@ -1,12 +1,15 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   createDocumentCapture,
   fetchMerchantCaptures,
   confirmDocumentCapture,
   discardDocumentCapture,
+  ingestDocumentCapture,
   BackendDocumentCaptureResponseDTO,
+  BackendDocumentIngestResponseDTO,
 } from '@/lib/api';
 import { formatINR } from '@/lib/utils';
 import { Card } from '@/components/ui/Card';
@@ -28,13 +31,17 @@ import {
   Layers,
   ArrowRight,
   ShieldCheck,
+  Database,
+  ExternalLink,
 } from 'lucide-react';
 
 export default function OfficeKitPage() {
   const [captures, setCaptures] = useState<BackendDocumentCaptureResponseDTO[]>([]);
   const [activeCapture, setActiveCapture] = useState<BackendDocumentCaptureResponseDTO | null>(null);
+  const [ingestResult, setIngestResult] = useState<BackendDocumentIngestResponseDTO | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [uploading, setUploading] = useState<boolean>(false);
+  const [ingesting, setIngesting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   // Document Form State
@@ -73,6 +80,7 @@ export default function OfficeKitPage() {
     setVendor(capture.extractedVendor || '');
     setCategory(capture.extractedCategory || 'OPERATIONS');
     setReference(capture.extractedReference || '');
+    setIngestResult(null);
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -142,6 +150,20 @@ export default function OfficeKitPage() {
     }
   };
 
+  const handleIngest = async () => {
+    if (!activeCapture) return;
+    setIngesting(true);
+    setError(null);
+    try {
+      const res = await ingestDocumentCapture(activeCapture.id);
+      setIngestResult(res);
+    } catch (err: any) {
+      setError(err.message || 'Failed to ingest document capture into financial ledger');
+    } finally {
+      setIngesting(false);
+    }
+  };
+
   return (
     <div className="space-y-8 font-mono">
       {/* Page Header */}
@@ -151,10 +173,10 @@ export default function OfficeKitPage() {
             <h1 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight">
               Office Kit Phone Capture
             </h1>
-            <Badge variant="demo">MOBILE PHONE CAPTURE</Badge>
+            <Badge variant="demo">VERIFIED FINANCIAL INGESTION</Badge>
           </div>
           <p className="text-xs sm:text-sm text-slate-400 font-mono">
-            Capture receipts, invoices & expenses from phone camera for structured Flowwise review
+            Capture receipts & invoices from phone camera, verify metadata, and ingest into live ledger
           </p>
         </div>
 
@@ -243,7 +265,7 @@ export default function OfficeKitPage() {
           </div>
         </div>
 
-        {/* Right: Extracted Data Review & Confirmation Form (7 cols) */}
+        {/* Right: Extracted Data Review & Ingestion Form (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
           <Card variant="glow-cyan" className="space-y-6">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
@@ -351,6 +373,71 @@ export default function OfficeKitPage() {
                   <span>Discard Document</span>
                 </Button>
               </div>
+
+              {/* Sprint 12: Verified Financial Ingestion Action */}
+              {activeCapture && activeCapture.status === 'CONFIRMED' && (
+                <div className="p-4 bg-[#080E14] border border-[#00E599]/40 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-[#00E599] font-bold uppercase">
+                      <ShieldCheck className="w-5 h-5" />
+                      <span>Verified Document Ready for Ingestion</span>
+                    </div>
+                    <Badge variant="emerald" className="text-[9px]">READY FOR LEDGER</Badge>
+                  </div>
+
+                  <p className="text-[11px] text-slate-300">
+                    Document status is verified. Click below to create financial transaction record in ledger with full audit provenance.
+                  </p>
+
+                  <Button
+                    variant="cyan"
+                    size="lg"
+                    onClick={handleIngest}
+                    disabled={ingesting}
+                    className="w-full gap-2"
+                  >
+                    <Database className="w-4 h-4" />
+                    <span>{ingesting ? 'Ingesting into Ledger...' : 'Verified → Add to Financial Ledger'}</span>
+                  </Button>
+                </div>
+              )}
+
+              {/* Ingestion Results Banner */}
+              {ingestResult && (
+                <div className="p-4 bg-[#070A0F] border border-[#00F0FF]/40 space-y-3 text-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-[#00F0FF] font-bold uppercase">
+                      <CheckCircle2 className="w-5 h-5 text-[#00E599]" />
+                      <span>{ingestResult.alreadyIngested ? 'Already Ingested (Idempotent)' : 'Transaction Ledger Record Created'}</span>
+                    </div>
+                    <Badge variant="cyan" className="text-[9px]">SOURCE: OFFICE KIT</Badge>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 py-2 border-y border-white/10 text-[11px]">
+                    <div>
+                      <span className="text-slate-500 block text-[9px] uppercase">Ref No.</span>
+                      <span className="font-bold text-white">{ingestResult.transactionReference}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[9px] uppercase">Amount</span>
+                      <span className="font-bold text-[#00F0FF]">{formatINR(ingestResult.amount)}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[9px] uppercase">Category</span>
+                      <span className="font-bold text-slate-200">{ingestResult.category}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[9px] uppercase">Tx ID</span>
+                      <span className="font-bold text-white">#{ingestResult.transactionId}</span>
+                    </div>
+                  </div>
+
+                  <Link href="/dashboard/transactions" className="inline-flex items-center gap-1.5 text-xs text-[#00F0FF] hover:underline font-bold">
+                    <span>View in Transactions Ledger</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              )}
             </div>
           </Card>
         </div>

@@ -83,4 +83,17 @@ class OfficeKitControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.status").value("DISCARDED"));
     }
+
+    @Test
+    void testIngestCapture_Success() throws Exception {
+        DocumentCaptureResponseDTO created = officeKitService.createCapture(1L, new DocumentCaptureRequestDTO("RECEIPT", "rec.jpg", null, "image/jpeg", 1024L, null, null, null));
+        DocumentCaptureResponseDTO confirmed = officeKitService.confirmCapture(created.getId(), new DocumentConfirmRequestDTO(new BigDecimal("2450.00"), "Metro Supplies", "OPERATIONS", "REC-8841"));
+
+        mockMvc.perform(post("/api/v1/office-kit/captures/" + confirmed.getId() + "/ingest")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.sourceType").value("OFFICE_KIT"))
+                .andExpect(jsonPath("$.data.alreadyIngested").value(false));
+    }
 }

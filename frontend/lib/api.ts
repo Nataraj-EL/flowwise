@@ -45,6 +45,8 @@ export interface BackendTransactionDTO {
   paymentMethod: string;
   status: 'SETTLED' | 'PENDING' | 'SCHEDULED';
   demoTag: string;
+  sourceType?: string;
+  sourceCaptureId?: number;
 }
 
 export interface BackendCategoryTotalDTO {
@@ -261,6 +263,19 @@ export interface BackendDocumentConfirmRequestDTO {
   vendorName?: string;
   category?: string;
   reference?: string;
+}
+
+export interface BackendDocumentIngestResponseDTO {
+  captureId: number;
+  transactionId: number;
+  merchantId: number;
+  amount: number;
+  category: string;
+  counterparty: string;
+  transactionReference: string;
+  sourceType: string;
+  ingestionTimestamp: string;
+  alreadyIngested: boolean;
 }
 
 export interface ApiResponse<T> {
@@ -493,5 +508,16 @@ export async function discardDocumentCapture(captureId: number | string): Promis
   if (!res.ok) throw new Error(`Failed to discard document capture ID ${captureId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendDocumentCaptureResponseDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to discard capture');
+  return json.data;
+}
+
+export async function ingestDocumentCapture(captureId: number | string): Promise<BackendDocumentIngestResponseDTO> {
+  const res = await fetch(`${API_BASE_URL}/office-kit/captures/${captureId}/ingest`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to ingest document capture ID ${captureId} into financial ledger (HTTP ${res.status})`);
+  const json: ApiResponse<BackendDocumentIngestResponseDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to ingest capture into ledger');
   return json.data;
 }

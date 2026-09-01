@@ -13,6 +13,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     List<Transaction> findByMerchantIdOrderByTransactionDateDesc(Long merchantId);
 
+    boolean existsBySourceCaptureId(Long sourceCaptureId);
+
+    java.util.Optional<Transaction> findBySourceCaptureId(Long sourceCaptureId);
+
     @Query("SELECT t FROM Transaction t WHERE t.merchant.id = :merchantId " +
            "AND (:type IS NULL OR LOWER(t.type) = LOWER(:type)) " +
            "AND (:category IS NULL OR LOWER(t.category) = LOWER(:category)) " +

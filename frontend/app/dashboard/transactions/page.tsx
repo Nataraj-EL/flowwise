@@ -305,8 +305,13 @@ export default function TransactionsPage() {
                         </div>
                       </td>
 
-                      <td className="p-3.5">
+                      <td className="p-3.5 space-y-1">
                         <Badge variant="cyan">{txn.category}</Badge>
+                        {txn.sourceType === 'OFFICE_KIT' && (
+                          <div className="pt-0.5">
+                            <Badge variant="emerald" className="text-[9px] py-0.5">OFFICE KIT</Badge>
+                          </div>
+                        )}
                       </td>
 
                       <td className="p-3.5">

@@ -3,6 +3,7 @@ package com.flowwise;
 import com.flowwise.dto.DocumentCaptureRequestDTO;
 import com.flowwise.dto.DocumentCaptureResponseDTO;
 import com.flowwise.dto.DocumentConfirmRequestDTO;
+import com.flowwise.dto.DocumentIngestResponseDTO;
 import com.flowwise.exception.ResourceNotFoundException;
 import com.flowwise.service.OfficeKitService;
 import org.junit.jupiter.api.Test;
@@ -73,6 +74,53 @@ class OfficeKitServiceTest {
 
         assertNotNull(discarded);
         assertEquals("DISCARDED", discarded.getStatus());
+    }
+
+    @Test
+    void testIngestConfirmedCapture_Success() {
+        DocumentCaptureResponseDTO created = officeKitService.createCapture(1L, new DocumentCaptureRequestDTO("RECEIPT", "rec.jpg", null, "image/jpeg", 1024L, null, null, null));
+        DocumentCaptureResponseDTO confirmed = officeKitService.confirmCapture(created.getId(), new DocumentConfirmRequestDTO(new BigDecimal("2450.00"), "Metro Commercial [DEMO]", "OPERATIONS", "REC-8841"));
+
+        DocumentIngestResponseDTO ingestResult = officeKitService.ingestCapture(confirmed.getId());
+
+        assertNotNull(ingestResult);
+        assertNotNull(ingestResult.getTransactionId());
+        assertEquals("OFFICE_KIT", ingestResult.getSourceType());
+        assertEquals(0, new BigDecimal("2450.00").compareTo(ingestResult.getAmount()));
+        assertEquals("Metro Commercial [DEMO]", ingestResult.getCounterparty());
+        assertFalse(ingestResult.isAlreadyIngested());
+    }
+
+    @Test
+    void testIngestDuplicateCapture_Idempotent() {
+        DocumentCaptureResponseDTO created = officeKitService.createCapture(1L, new DocumentCaptureRequestDTO("INVOICE", "inv.pdf", null, "application/pdf", 1024L, null, null, null));
+        DocumentCaptureResponseDTO confirmed = officeKitService.confirmCapture(created.getId(), new DocumentConfirmRequestDTO(new BigDecimal("45000.00"), "Apex Wholesale [DEMO]", "INVENTORY", "INV-9920"));
+
+        DocumentIngestResponseDTO firstIngest = officeKitService.ingestCapture(confirmed.getId());
+        DocumentIngestResponseDTO secondIngest = officeKitService.ingestCapture(confirmed.getId());
+
+        assertNotNull(secondIngest);
+        assertEquals(firstIngest.getTransactionId(), secondIngest.getTransactionId());
+        assertTrue(secondIngest.isAlreadyIngested());
+    }
+
+    @Test
+    void testIngestUnconfirmedCapture_ThrowsException() {
+        DocumentCaptureResponseDTO created = officeKitService.createCapture(1L, new DocumentCaptureRequestDTO("RECEIPT", "unconfirmed.jpg", null, "image/jpeg", 1024L, null, null, null));
+
+        assertThrows(IllegalStateException.class, () -> {
+            officeKitService.ingestCapture(created.getId());
+        });
+    }
+
+    @Test
+    void testIngestDiscardedCapture_ThrowsException() {
+        DocumentCaptureResponseDTO created = officeKitService.createCapture(1L, new DocumentCaptureRequestDTO("RECEIPT", "discarded.jpg", null, "image/jpeg", 1024L, null, null, null));
+        DocumentCaptureResponseDTO discarded = officeKitService.discardCapture(created.getId());
+
+        assertThrows(IllegalStateException.class, () -> {
+            officeKitService.ingestCapture(discarded.getId());
+        });
     }
 
     @Test
