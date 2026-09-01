@@ -175,6 +175,26 @@ export interface BackendScenarioResultDTO {
   estimate: boolean;
 }
 
+export interface BackendEvidenceItemDTO {
+  metricName: string;
+  value: any;
+  unit: string;
+  source: string;
+  period: string;
+  calculationType: 'ACTUAL' | 'ESTIMATE';
+  assumptions: string;
+  confidenceStatus: 'HIGH' | 'MODERATE' | 'LIMITED';
+}
+
+export interface BackendFinancialEvidenceSummaryDTO {
+  question: string;
+  intentCategory: string;
+  evidenceItems: BackendEvidenceItemDTO[];
+  assumptions: string[];
+  overallStatus: string;
+  conclusion: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -271,6 +291,22 @@ export async function askFlowwiseIntelligence(
   if (!res.ok) throw new Error(`Failed to process intelligence query for ID ${merchantId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendIntelligenceResponseDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to generate AI response');
+  return json.data;
+}
+
+export async function fetchMerchantEvidence(
+  merchantId: number | string,
+  question: string
+): Promise<BackendFinancialEvidenceSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/intelligence/evidence`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question }),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to fetch financial evidence for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialEvidenceSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve financial evidence');
   return json.data;
 }
 

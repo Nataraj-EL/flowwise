@@ -4,15 +4,16 @@ import React, { useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { askFlowwiseIntelligence, BackendIntelligenceResponseDTO } from '@/lib/api';
+import { askFlowwiseIntelligence, BackendIntelligenceResponseDTO, BackendEvidenceItemDTO } from '@/lib/api';
 import { formatINR } from '@/lib/utils';
-import { Bot, Sparkles, Send, ShieldCheck, Layers, Lock, Cpu, CheckCircle } from 'lucide-react';
+import { Bot, Sparkles, Send, ShieldCheck, Layers, Lock, Cpu, ChevronDown, ChevronUp, FileText, CheckCircle2, Info } from 'lucide-react';
 
 export const AskFlowwisePanel: React.FC = () => {
   const [question, setQuestion] = useState<string>('Can I afford ₹80,000 of inventory this week?');
   const [response, setResponse] = useState<BackendIntelligenceResponseDTO | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [showWhyThisAnswer, setShowWhyThisAnswer] = useState<boolean>(false);
 
   const presetQuestions = [
     'What changed compared with last month?',
@@ -28,6 +29,7 @@ export const AskFlowwisePanel: React.FC = () => {
 
     setLoading(true);
     setError(null);
+    setShowWhyThisAnswer(false);
     try {
       const data = await askFlowwiseIntelligence(1, queryToAsk.trim());
       setResponse(data);
@@ -37,6 +39,10 @@ export const AskFlowwisePanel: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const evidenceItems: BackendEvidenceItemDTO[] = response?.evidenceSummary?.evidenceItems || [];
+  const assumptions: string[] = response?.evidenceSummary?.assumptions || [];
+  const overallStatus: string = response?.evidenceSummary?.overallStatus || 'FEASIBLE';
 
   return (
     <Card variant="glow-cyan" className="space-y-6">
@@ -145,36 +151,80 @@ export const AskFlowwisePanel: React.FC = () => {
               {response.answer}
             </p>
 
-            {/* Evidence Summary Pills */}
-            {response.evidenceSummary && (
-              <div className="pt-2 border-t border-white/10 space-y-2">
-                <span className="text-[10px] uppercase text-slate-500 font-bold">
-                  Retrieved Financial Evidence Context
+            {/* Expandable "Why this answer?" Section */}
+            <div className="pt-3 border-t border-white/10">
+              <button
+                onClick={() => setShowWhyThisAnswer(!showWhyThisAnswer)}
+                className="flex items-center justify-between w-full py-1.5 text-xs text-[#00F0FF] font-bold uppercase hover:underline"
+              >
+                <span className="flex items-center gap-1.5">
+                  <FileText className="w-4 h-4" />
+                  Why this answer? (Auditable Evidence & Sources)
                 </span>
-                <div className="flex flex-wrap gap-2 text-[11px]">
-                  {response.evidenceSummary.availableCash && (
-                    <div className="px-2.5 py-1 bg-white/5 border border-white/10 text-slate-300">
-                      Available Cash: <span className="text-white font-bold">{formatINR(response.evidenceSummary.availableCash)}</span>
+                {showWhyThisAnswer ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+
+              {showWhyThisAnswer && (
+                <div className="mt-3 p-3 bg-[#0D1016] border border-white/10 space-y-4 text-xs">
+                  {/* Status Indicator */}
+                  <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                    <span className="text-slate-400 text-[11px]">System Decision Status:</span>
+                    <Badge variant={overallStatus === 'FEASIBLE' || overallStatus === 'HEALTHY' ? 'emerald' : 'rose'}>
+                      {overallStatus}
+                    </Badge>
+                  </div>
+
+                  {/* Evidence Items Breakdown */}
+                  {evidenceItems.length > 0 ? (
+                    <div className="space-y-2">
+                      <span className="text-[10px] uppercase text-slate-400 font-bold">Key Financial Metrics</span>
+                      <div className="space-y-2">
+                        {evidenceItems.map((item, idx) => (
+                          <div key={idx} className="p-2.5 bg-[#07080B] border border-white/10 space-y-1">
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="font-bold text-white">{item.metricName}</span>
+                              <div className="flex items-center gap-2">
+                                <Badge variant={item.calculationType === 'ACTUAL' ? 'cyan' : 'amber'} className="text-[9px] py-0.5">
+                                  {item.calculationType}
+                                </Badge>
+                                <span className="font-bold text-[#00F0FF]">
+                                  {typeof item.value === 'number' ? formatINR(item.value) : String(item.value)} {item.unit !== 'INR' && item.unit !== 'Status' ? item.unit : ''}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="text-[10px] text-slate-400 flex items-center justify-between pt-0.5">
+                              <span>Source: {item.source} ({item.period})</span>
+                              <span className="text-slate-500">Confidence: {item.confidenceStatus}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-slate-400 text-[11px]">
+                      Structured evidence details retrieved directly from Flowwise Spring Boot Service Engines.
                     </div>
                   )}
-                  {response.evidenceSummary.netCashFlow && (
-                    <div className="px-2.5 py-1 bg-white/5 border border-white/10 text-slate-300">
-                      Net Surplus: <span className="text-[#00E599] font-bold">{formatINR(response.evidenceSummary.netCashFlow)}</span>
-                    </div>
-                  )}
-                  {response.evidenceSummary.monthlyBurnRate && (
-                    <div className="px-2.5 py-1 bg-white/5 border border-white/10 text-slate-300">
-                      Monthly Burn: <span className="text-rose-400 font-bold">{formatINR(response.evidenceSummary.monthlyBurnRate)}</span>
-                    </div>
-                  )}
-                  {response.evidenceSummary.healthScore !== undefined && (
-                    <div className="px-2.5 py-1 bg-white/5 border border-white/10 text-slate-300">
-                      Health Rating: <span className="text-[#00F0FF] font-bold">{response.evidenceSummary.healthScore}/100</span>
+
+                  {/* Assumptions List */}
+                  {assumptions.length > 0 && (
+                    <div className="space-y-1.5 pt-2 border-t border-white/10">
+                      <span className="text-[10px] uppercase text-slate-400 font-bold flex items-center gap-1">
+                        <Info className="w-3.5 h-3.5 text-[#00F0FF]" /> Calculation Assumptions
+                      </span>
+                      <div className="space-y-1 text-[10px] text-slate-300">
+                        {assumptions.map((asm, idx) => (
+                          <div key={idx} className="flex items-start gap-1.5">
+                            <CheckCircle2 className="w-3 h-3 text-[#00F0FF] shrink-0 mt-0.5" />
+                            <span>{asm}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* AI Safety Disclaimer */}
