@@ -2451,3 +2451,119 @@ export async function archiveFinancialDecisionPortfolio(
   if (!json.success) throw new Error(json.error || 'Failed to archive decision portfolio');
   return json.data;
 }
+
+// Sprint 40: Advisory Action Sequencing & Execution Readiness Interfaces & API Helpers
+export interface BackendAdvisoryActionPlanStepDTO {
+  id: number;
+  planId: number;
+  stepKey: string;
+  stepNumber: number;
+  actionType: string;
+  title: string;
+  description: string;
+  readinessStatus: 'READY' | 'BLOCKED' | 'REVIEW_REQUIRED' | 'COMPLETED';
+  stepScore: number;
+  priorityScore: number;
+  riskProtectionScore: number;
+  urgencyScore: number;
+  dependencyReadinessScore: number;
+  confidenceStatus: 'HIGH' | 'MODERATE' | 'LIMITED' | 'INSUFFICIENT_DATA';
+  effortLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+  prerequisites: string;
+  expectedOutcome: string;
+  evidenceMetrics: string;
+}
+
+export interface BackendAdvisoryActionPlanDTO {
+  id: number;
+  merchantId: number;
+  planKey: string;
+  horizon: '7D' | '30D' | '60D' | '90D';
+  status: 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'ARCHIVED';
+  overallReadinessScore: number;
+  totalStepsCount: number;
+  readyStepsCount: number;
+  blockedStepsCount: number;
+  primaryNextAction: string;
+  expectedBenefit: string;
+  riskIfDelayed: string;
+  evidenceMetrics: string;
+  assumptions: string;
+  steps: BackendAdvisoryActionPlanStepDTO[];
+  evaluatedAt: string;
+}
+
+export interface BackendAdvisoryActionPlanSummaryDTO {
+  merchantId: number;
+  totalPlansCount: number;
+  activePlan: BackendAdvisoryActionPlanDTO | null;
+  plans: BackendAdvisoryActionPlanDTO[];
+  summaryExplanation: string;
+  advisoryNotice: string;
+}
+
+export async function fetchAdvisoryActionPlanSummary(
+  merchantId: number | string,
+  horizon?: string
+): Promise<BackendAdvisoryActionPlanSummaryDTO> {
+  const queryString = horizon ? `?horizon=${horizon}` : '';
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/advisory-action-plans${queryString}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch advisory action plan summary for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendAdvisoryActionPlanSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve advisory action plan summary');
+  return json.data;
+}
+
+export async function fetchAdvisoryActionPlanById(
+  merchantId: number | string,
+  planId: number | string
+): Promise<BackendAdvisoryActionPlanDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/advisory-action-plans/${planId}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch action plan ID ${planId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendAdvisoryActionPlanDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve advisory action plan');
+  return json.data;
+}
+
+export async function evaluateAdvisoryActionPlan(
+  merchantId: number | string,
+  horizon?: string
+): Promise<BackendAdvisoryActionPlanDTO> {
+  const queryString = horizon ? `?horizon=${horizon}` : '';
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/advisory-action-plans/evaluate${queryString}`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to evaluate advisory action plan for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendAdvisoryActionPlanDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to evaluate advisory action plan');
+  return json.data;
+}
+
+export async function activateAdvisoryActionPlan(
+  merchantId: number | string,
+  planId: number | string
+): Promise<BackendAdvisoryActionPlanDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/advisory-action-plans/${planId}/activate`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to activate plan ID ${planId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendAdvisoryActionPlanDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to activate advisory action plan');
+  return json.data;
+}
+
+export async function archiveAdvisoryActionPlan(
+  merchantId: number | string,
+  planId: number | string
+): Promise<BackendAdvisoryActionPlanDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/advisory-action-plans/${planId}/archive`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to archive plan ID ${planId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendAdvisoryActionPlanDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to archive advisory action plan');
+  return json.data;
+}
