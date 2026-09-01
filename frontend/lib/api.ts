@@ -643,6 +643,43 @@ export interface BackendScenarioComparisonDTO {
   summaryAdvice: string;
 }
 
+export interface BackendDecisionOptionDTO {
+  id?: number;
+  optionKey: string;
+  title: string;
+  description: string;
+  compositeScore: number;
+  liquidityScore: number;
+  coverageScore: number;
+  goalScore: number;
+  riskScore: number;
+  urgencyScore: number;
+  projected7dCash: number;
+  projected30dCash: number;
+  projected90dCash: number;
+  riskStatus: 'FEASIBLE' | 'CAUTION' | 'HIGH_RISK';
+  goalImpactStatus: 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE';
+  assumptions: string;
+  evidenceMetrics: string;
+  rankOrder: number;
+  estimate: boolean;
+}
+
+export interface BackendDecisionAnalysisDTO {
+  id?: number;
+  merchantId: number;
+  analysisKey: string;
+  title: string;
+  recommendedOption: string;
+  baselineScore: number;
+  dataQualityStatus: 'SUFFICIENT' | 'INSUFFICIENT_DATA';
+  inputFingerprint?: string;
+  summaryExplanation: string;
+  evaluatedAt: string;
+  options: BackendDecisionOptionDTO[];
+  advisoryNotice: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -1261,5 +1298,21 @@ export async function simulateScenario(
   if (!res.ok) throw new Error(`Failed to simulate scenario for merchant ID ${merchantId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendFinancialScenarioDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to simulate scenario');
+  return json.data;
+}
+
+export async function fetchMerchantDecisionIntelligence(merchantId: number | string): Promise<BackendDecisionAnalysisDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/decision-intelligence`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch decision intelligence for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendDecisionAnalysisDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve decision intelligence');
+  return json.data;
+}
+
+export async function fetchLatestDecisionAnalysis(merchantId: number | string): Promise<BackendDecisionAnalysisDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/decision-intelligence/analysis`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to evaluate decision analysis for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendDecisionAnalysisDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to evaluate decision analysis');
   return json.data;
 }
