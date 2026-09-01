@@ -27,6 +27,7 @@ public class EvidenceBuilderService {
     private final CommandCenterService commandCenterService;
     private final ReconciliationService reconciliationService;
     private final CashManagementService cashManagementService;
+    private final FinancialGoalService goalService;
 
     public EvidenceBuilderService(MerchantRepository merchantRepository,
                                   MerchantService merchantService,
@@ -41,7 +42,8 @@ public class EvidenceBuilderService {
                                   WorkingCapitalService workingCapitalService,
                                   CommandCenterService commandCenterService,
                                   ReconciliationService reconciliationService,
-                                  CashManagementService cashManagementService) {
+                                  CashManagementService cashManagementService,
+                                  FinancialGoalService goalService) {
         this.merchantRepository = merchantRepository;
         this.merchantService = merchantService;
         this.cashFlowService = cashFlowService;
@@ -56,6 +58,7 @@ public class EvidenceBuilderService {
         this.commandCenterService = commandCenterService;
         this.reconciliationService = reconciliationService;
         this.cashManagementService = cashManagementService;
+        this.goalService = goalService;
     }
 
     public FinancialEvidenceSummaryDTO buildEvidenceSummary(Long merchantId, String question) {
@@ -70,7 +73,9 @@ public class EvidenceBuilderService {
         String qLower = question.toLowerCase(Locale.ROOT);
         
         // 1. Detect Intent Category
-        if (qLower.contains("pay my bills") || qLower.contains("can i pay") || qLower.contains("pay first") || qLower.contains("safely spend") || qLower.contains("payment capacity") || qLower.contains("payment plan") || qLower.contains("spend")) {
+        if (qLower.contains("goal") || qLower.contains("target") || qLower.contains("doing against") || qLower.contains("hit my goal")) {
+            return buildFinancialGoalEvidence(merchantId, question);
+        } else if (qLower.contains("pay my bills") || qLower.contains("can i pay") || qLower.contains("pay first") || qLower.contains("safely spend") || qLower.contains("payment capacity") || qLower.contains("payment plan") || qLower.contains("spend")) {
             return buildCashManagementEvidence(merchantId, question);
         } else if (qLower.contains("duplicate") || qLower.contains("reconcil") || qLower.contains("unreviewed") || qLower.contains("suspicious")) {
             return buildReconciliationEvidence(merchantId, question);
@@ -422,6 +427,38 @@ public class EvidenceBuilderService {
                 items,
                 assumptions,
                 "AT_RISK".equalsIgnoreCase(cashMgmt.getPaymentRiskStatus()) ? "ACTION_REQUIRED" : "HEALTHY",
+                conclusion
+        );
+    }
+
+    private FinancialEvidenceSummaryDTO buildFinancialGoalEvidence(Long merchantId, String question) {
+        List<FinancialGoalDTO> goals = goalService.getMerchantGoals(merchantId);
+
+        long activeCount = goals.stream().filter(g -> "ON_TRACK".equalsIgnoreCase(g.getRiskStatus()) || "ACTIVE".equalsIgnoreCase(g.getRiskStatus())).count();
+        long atRiskCount = goals.stream().filter(g -> "AT_RISK".equalsIgnoreCase(g.getRiskStatus())).count();
+        long achievedCount = goals.stream().filter(g -> "ACHIEVED".equalsIgnoreCase(g.getRiskStatus())).count();
+
+        List<EvidenceItemDTO> items = new ArrayList<>();
+        items.add(new EvidenceItemDTO("Total Configured Goals", goals.size(), "Count", "Goal Tracking Engine", "Active Portfolio", "ACTUAL", "Total merchant defined goals", "HIGH"));
+        items.add(new EvidenceItemDTO("On-Track / Active Goals", activeCount, "Count", "Goal Tracking Engine", "Active Portfolio", "ACTUAL", "Goals meeting progress pace", "HIGH"));
+        items.add(new EvidenceItemDTO("At-Risk Goals", atRiskCount, "Count", "Goal Tracking Engine", "Alert Queue", "ACTUAL", "Goals lagging required pace", "HIGH"));
+        items.add(new EvidenceItemDTO("Achieved Goals", achievedCount, "Count", "Goal Tracking Engine", "Completed Portfolio", "ACTUAL", "Successfully completed goals", "HIGH"));
+
+        List<String> assumptions = new ArrayList<>();
+        for (FinancialGoalDTO g : goals) {
+            items.add(new EvidenceItemDTO("Goal: " + g.getName(), g.getProgressPct(), "%", g.getCalculationSource(), g.getTargetDate(), "ACTUAL", "Progress: " + g.getProgressPct() + "% | Pace: ₹" + g.getRequiredMonthlyPace() + "/mo", "HIGH"));
+            assumptions.add("Goal '" + g.getName() + "': Current ₹" + g.getCurrentAmount() + " vs Target ₹" + g.getTargetAmount() + " by " + g.getTargetDate() + " (" + g.getRiskStatus() + ")");
+        }
+
+        String conclusion = "Financial Goal Summary: Portfolio contains " + goals.size() + " goals (" + activeCount 
+                + " active/on-track, " + atRiskCount + " at-risk, " + achievedCount + " achieved). Target evaluations are calculated dynamically from underlying financial engines.";
+
+        return new FinancialEvidenceSummaryDTO(
+                question,
+                "FINANCIAL_GOALS",
+                items,
+                assumptions,
+                atRiskCount > 0 ? "ACTION_REQUIRED" : "HEALTHY",
                 conclusion
         );
     }

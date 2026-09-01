@@ -494,6 +494,34 @@ export interface BackendPaymentPlanDTO {
   executionAdvice: string;
 }
 
+export interface BackendCreateGoalRequestDTO {
+  goalType: 'CASH_RESERVE' | 'WORKING_CAPITAL' | 'DEBT_REDUCTION' | 'RECEIVABLES_COLLECTION' | 'EXPENSE_REDUCTION';
+  name: string;
+  targetAmount: number;
+  targetDate: string;
+}
+
+export interface BackendFinancialGoalDTO {
+  id: number;
+  merchantId: number;
+  goalType: string;
+  goalCategoryType: 'ACCUMULATION' | 'REDUCTION';
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  baselineAmount: number;
+  progressAmount: number;
+  progressPct: number;
+  remainingAmount: number;
+  targetDate: string;
+  daysRemaining: number;
+  requiredMonthlyPace: number;
+  projectedOutcome: number;
+  riskStatus: 'ON_TRACK' | 'AT_RISK' | 'ACHIEVED' | 'EXPIRED' | 'ARCHIVED';
+  statusExplanation: string;
+  calculationSource: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -890,5 +918,51 @@ export async function fetchMerchantPaymentPlan(merchantId: number | string): Pro
   if (!res.ok) throw new Error(`Failed to fetch payment plan for merchant ID ${merchantId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendPaymentPlanDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to retrieve payment plan');
+  return json.data;
+}
+
+export async function fetchMerchantGoals(merchantId: number | string): Promise<BackendFinancialGoalDTO[]> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/goals`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch financial goals for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialGoalDTO[]> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve financial goals');
+  return json.data;
+}
+
+export async function createMerchantGoal(
+  merchantId: number | string,
+  request: BackendCreateGoalRequestDTO
+): Promise<BackendFinancialGoalDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/goals`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to create goal for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialGoalDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to create financial goal');
+  return json.data;
+}
+
+export async function evaluateGoal(merchantId: number | string, goalId: number | string): Promise<BackendFinancialGoalDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/goals/${goalId}/evaluate`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to evaluate goal ID ${goalId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialGoalDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to evaluate goal');
+  return json.data;
+}
+
+export async function archiveGoal(merchantId: number | string, goalId: number | string): Promise<BackendFinancialGoalDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/goals/${goalId}/archive`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to archive goal ID ${goalId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialGoalDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to archive goal');
   return json.data;
 }

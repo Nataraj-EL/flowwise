@@ -27,6 +27,7 @@ public class FinancialActionService {
     private final WorkingCapitalService workingCapitalService;
     private final ReconciliationService reconciliationService;
     private final CashManagementService cashManagementService;
+    private final FinancialGoalService goalService;
 
     public FinancialActionService(MerchantRepository merchantRepository,
                                   FinancialActionRepository actionRepository,
@@ -37,7 +38,8 @@ public class FinancialActionService {
                                   PayablesService payablesService,
                                   WorkingCapitalService workingCapitalService,
                                   ReconciliationService reconciliationService,
-                                  CashManagementService cashManagementService) {
+                                  CashManagementService cashManagementService,
+                                  FinancialGoalService goalService) {
         this.merchantRepository = merchantRepository;
         this.actionRepository = actionRepository;
         this.cashFlowService = cashFlowService;
@@ -48,6 +50,7 @@ public class FinancialActionService {
         this.workingCapitalService = workingCapitalService;
         this.reconciliationService = reconciliationService;
         this.cashManagementService = cashManagementService;
+        this.goalService = goalService;
     }
 
     public ActionSummaryDTO getMerchantActions(Long merchantId) {
@@ -256,7 +259,35 @@ public class FinancialActionService {
                 );
             }
 
-            // Rule 11: Low Priority Opportunity / Healthy Position
+            // Rule 11: Financial Goals At-Risk & Deadline Alerts
+            List<FinancialGoalDTO> goals = goalService.getMerchantGoals(merchantId);
+            for (FinancialGoalDTO g : goals) {
+                if ("AT_RISK".equalsIgnoreCase(g.getRiskStatus())) {
+                    createOrUpdateAction(
+                            merchantId,
+                            "ACT-GOAL-AT-RISK-" + g.getId(),
+                            "Financial Goal At Risk: " + g.getName(),
+                            "HIGH",
+                            "GOALS",
+                            "Current progress of " + g.getProgressPct() + "% (₹" + g.getCurrentAmount() + ") lags required pace of ₹" + g.getRequiredMonthlyPace() + "/month.",
+                            "Target: ₹" + g.getTargetAmount() + " | Progress: " + g.getProgressPct() + "% | Deadline: " + g.getTargetDate(),
+                            "Adjust operational spending or receivables collection to achieve goal target."
+                    );
+                } else if (g.getDaysRemaining() > 0 && g.getDaysRemaining() <= 14 && !"ACHIEVED".equalsIgnoreCase(g.getRiskStatus())) {
+                    createOrUpdateAction(
+                            merchantId,
+                            "ACT-GOAL-DEADLINE-" + g.getId(),
+                            "Goal Target Deadline Approaching: " + g.getName(),
+                            "MEDIUM",
+                            "GOALS",
+                            "Target deadline is in " + g.getDaysRemaining() + " days. Remaining target: ₹" + g.getRemainingAmount() + ".",
+                            "Target Date: " + g.getTargetDate() + " | Remaining Amount: ₹" + g.getRemainingAmount(),
+                            "Execute final push to achieve financial goal target."
+                    );
+                }
+            }
+
+            // Rule 12: Low Priority Opportunity / Healthy Position
             if (health.getOverallScore() >= 70) {
                 createOrUpdateAction(
                         merchantId,
