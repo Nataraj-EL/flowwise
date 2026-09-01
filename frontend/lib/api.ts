@@ -62,6 +62,27 @@ export interface BackendTransactionSummaryDTO {
   categoryTotals: BackendCategoryTotalDTO[];
 }
 
+export interface BackendMonthlyCashFlowDTO {
+  month: string;
+  inflow: number;
+  outflow: number;
+  netCashFlow: number;
+}
+
+export interface BackendCashFlowSummaryDTO {
+  totalInflows: number;
+  totalOutflows: number;
+  netCashFlow: number;
+  operatingInflows: number;
+  operatingOutflows: number;
+  averageMonthlyOutflow: number;
+  burnRate: number;
+  cashRunwayMonths: number;
+  recurringExpensesEstimate: number;
+  upcomingPayablePressure: number;
+  liquidityStatus: 'OPTIMAL' | 'MODERATE' | 'CRITICAL';
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -118,5 +139,21 @@ export async function fetchMerchantTransactionSummary(merchantId: number | strin
   if (!res.ok) throw new Error(`Failed to fetch transaction summary for merchant ID ${merchantId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendTransactionSummaryDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to retrieve transaction summary');
+  return json.data;
+}
+
+export async function fetchMerchantCashFlowSummary(merchantId: number | string): Promise<BackendCashFlowSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/cash-flow`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch cash flow summary for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendCashFlowSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve cash flow summary');
+  return json.data;
+}
+
+export async function fetchMerchantMonthlyCashFlow(merchantId: number | string): Promise<BackendMonthlyCashFlowDTO[]> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/cash-flow/monthly`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch monthly cash flow for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendMonthlyCashFlowDTO[]> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve monthly cash flow');
   return json.data;
 }
