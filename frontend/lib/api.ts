@@ -934,6 +934,54 @@ export interface BackendStrategyLearningSummaryDTO {
   advisoryNotice: string;
 }
 
+export interface BackendFinancialPlanItemDTO {
+  id: number;
+  planId: number;
+  itemKey: string;
+  interventionType: string;
+  title: string;
+  description: string;
+  priorityScore: number;
+  riskProtectionScore: number;
+  financialImpactScore: number;
+  urgencyScore: number;
+  goalAlignmentScore: number;
+  historicalEffectivenessScore: number;
+  confidenceStatus: 'HIGH' | 'MODERATE' | 'LIMITED' | 'INSUFFICIENT_DATA';
+  expectedBenefit: string;
+  riskIfIgnored: string;
+  horizon: string;
+  rankOrder: number;
+  evidenceMetrics: string;
+}
+
+export interface BackendFinancialPlanDTO {
+  id: number;
+  merchantId: number;
+  planKey: string;
+  horizon: string;
+  status: 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'ARCHIVED';
+  overallPlanScore: number;
+  primaryFocusArea: string;
+  summaryExplanation: string;
+  assumptions: string;
+  items: BackendFinancialPlanItemDTO[];
+  evaluatedAt: string;
+}
+
+export interface BackendFinancialPlanSummaryDTO {
+  merchantId: number;
+  totalPlansCount: number;
+  activeHorizon: string;
+  activePlanScore: number;
+  primaryFocusArea: string;
+  activePlan: BackendFinancialPlanDTO;
+  plans: BackendFinancialPlanDTO[];
+  recommendedPlanActions: BackendFinancialActionDTO[];
+  summaryExplanation: string;
+  advisoryNotice: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -1820,5 +1868,71 @@ export async function evaluateStrategyLearning(merchantId: number | string): Pro
   if (!res.ok) throw new Error(`Failed to evaluate strategy learning for merchant ID ${merchantId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendStrategyLearningSummaryDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to evaluate strategy learning');
+  return json.data;
+}
+
+export async function fetchMerchantFinancialPlans(
+  merchantId: number | string,
+  horizon?: string
+): Promise<BackendFinancialPlanSummaryDTO> {
+  const queryString = horizon ? `?horizon=${horizon}` : '';
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/financial-plans${queryString}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch financial plans for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialPlanSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve financial plan summary');
+  return json.data;
+}
+
+export async function fetchFinancialPlanById(
+  merchantId: number | string,
+  planId: number | string
+): Promise<BackendFinancialPlanDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/financial-plans/${planId}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch financial plan ID ${planId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialPlanDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve financial plan');
+  return json.data;
+}
+
+export async function evaluateFinancialPlan(
+  merchantId: number | string,
+  horizon?: string
+): Promise<BackendFinancialPlanSummaryDTO> {
+  const queryString = horizon ? `?horizon=${horizon}` : '';
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/financial-plans/evaluate${queryString}`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to evaluate financial plan for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialPlanSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to evaluate financial plan');
+  return json.data;
+}
+
+export async function activateFinancialPlan(
+  merchantId: number | string,
+  planId: number | string
+): Promise<BackendFinancialPlanDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/financial-plans/${planId}/activate`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to activate plan ID ${planId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialPlanDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to activate plan');
+  return json.data;
+}
+
+export async function archiveFinancialPlan(
+  merchantId: number | string,
+  planId: number | string
+): Promise<BackendFinancialPlanDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/financial-plans/${planId}/archive`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to archive plan ID ${planId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialPlanDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to archive plan');
   return json.data;
 }
