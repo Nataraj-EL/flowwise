@@ -22,17 +22,20 @@ public class FinancialDecisionIntelligenceService {
     private final FinancialDecisionOptionRepository optionRepository;
     private final FinancialStrategyLearningRepository strategyLearningRepository;
     private final FinancialPlanOptimizationFactorRepository optimizationFactorRepository;
+    private final FinancialDecisionLearningRepository decisionLearningRepository;
 
     public FinancialDecisionIntelligenceService(MerchantRepository merchantRepository,
                                                 FinancialDecisionRepository decisionRepository,
                                                 FinancialDecisionOptionRepository optionRepository,
                                                 FinancialStrategyLearningRepository strategyLearningRepository,
-                                                FinancialPlanOptimizationFactorRepository optimizationFactorRepository) {
+                                                FinancialPlanOptimizationFactorRepository optimizationFactorRepository,
+                                                FinancialDecisionLearningRepository decisionLearningRepository) {
         this.merchantRepository = merchantRepository;
         this.decisionRepository = decisionRepository;
         this.optionRepository = optionRepository;
         this.strategyLearningRepository = strategyLearningRepository;
         this.optimizationFactorRepository = optimizationFactorRepository;
+        this.decisionLearningRepository = decisionLearningRepository;
     }
 
     public FinancialDecisionSummaryDTO evaluateDecisions(Long merchantId) {

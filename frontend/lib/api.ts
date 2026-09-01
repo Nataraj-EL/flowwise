@@ -2246,3 +2246,92 @@ export async function dismissFinancialDecision(
   if (!json.success) throw new Error(json.error || 'Failed to dismiss decision');
   return json.data;
 }
+
+// Sprint 38: Decision Outcome & Learning Interfaces & API Helpers
+export interface BackendFinancialDecisionOutcomeDTO {
+  id: number;
+  merchantId: number;
+  decisionId: number;
+  outcomeStatus: 'SUCCESSFUL' | 'PARTIAL' | 'INEFFECTIVE' | 'INSUFFICIENT_DATA';
+  evaluationWindow: '7D' | '30D' | '60D' | '90D';
+  expectedScore: number;
+  actualScore: number;
+  scoreVariancePct: number;
+  expectedCashImpact: number;
+  actualCashImpact: number;
+  cashVariancePct: number;
+  expectedRiskReduction: number;
+  actualRiskReduction: number;
+  expectedGoalImpact: number;
+  actualGoalImpact: number;
+  effectivenessScore: number;
+  confidenceStatus: 'HIGH' | 'MODERATE' | 'LIMITED' | 'INSUFFICIENT_DATA';
+  evidenceMetrics: string;
+  assumptions: string;
+  evaluatedAt: string;
+}
+
+export interface BackendDecisionLearningDTO {
+  id: number;
+  merchantId: number;
+  decisionType: string;
+  contextType: string;
+  sampleCount: number;
+  effectivenessScore: number;
+  learningMultiplier: number;
+  confidenceStatus: 'HIGH' | 'MODERATE' | 'LIMITED' | 'INSUFFICIENT_DATA';
+  evidenceMetrics: string;
+  evaluatedAt: string;
+}
+
+export interface BackendFinancialDecisionOutcomeSummaryDTO {
+  merchantId: number;
+  totalEvaluatedOutcomesCount: number;
+  successfulCount: number;
+  partialCount: number;
+  ineffectiveCount: number;
+  insufficientDataCount: number;
+  averageEffectivenessScore: number;
+  outcomes: BackendFinancialDecisionOutcomeDTO[];
+  learnings: BackendDecisionLearningDTO[];
+  summaryExplanation: string;
+  advisoryNotice: string;
+}
+
+export async function fetchFinancialDecisionOutcomeSummary(
+  merchantId: number | string,
+  window?: string
+): Promise<BackendFinancialDecisionOutcomeSummaryDTO> {
+  const queryString = window ? `?window=${window}` : '';
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/financial-decision-outcomes/summary${queryString}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch decision outcome summary for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialDecisionOutcomeSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve decision outcome summary');
+  return json.data;
+}
+
+export async function fetchDecisionLearnings(
+  merchantId: number | string
+): Promise<BackendDecisionLearningDTO[]> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/financial-decision-learning`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch decision learnings for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendDecisionLearningDTO[]> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve decision learnings');
+  return json.data;
+}
+
+export async function evaluateDecisionOutcome(
+  merchantId: number | string,
+  decisionId: number | string,
+  window?: string
+): Promise<BackendFinancialDecisionOutcomeDTO> {
+  const queryString = window ? `?window=${window}` : '';
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/financial-decisions/${decisionId}/outcome/evaluate${queryString}`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to evaluate decision outcome for decision ID ${decisionId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialDecisionOutcomeDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to evaluate decision outcome');
+  return json.data;
+}
