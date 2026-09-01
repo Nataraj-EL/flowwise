@@ -908,6 +908,32 @@ export interface BackendInterventionEffectivenessSummaryDTO {
   advisoryNotice: string;
 }
 
+export interface BackendStrategyLearningDTO {
+  id: number;
+  merchantId: number;
+  strategyKey: string;
+  interventionType: string;
+  contextType: string;
+  sampleCount: number;
+  effectivenessScore: number;
+  learningMultiplier: number;
+  confidenceStatus: 'HIGH' | 'MODERATE' | 'LIMITED' | 'INSUFFICIENT_DATA';
+  evidenceMetrics: string;
+  assumptions: string;
+  evaluatedAt: string;
+}
+
+export interface BackendStrategyLearningSummaryDTO {
+  merchantId: number;
+  totalEvaluatedStrategiesCount: number;
+  topPerformingInterventionType: string;
+  highConfidenceCount: number;
+  averageLearningMultiplier: number;
+  learnings: BackendStrategyLearningDTO[];
+  summaryExplanation: string;
+  advisoryNotice: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -1775,5 +1801,24 @@ export async function evaluateInterventionOutcome(
   if (!res.ok) throw new Error(`Failed to evaluate outcome for intervention ID ${interventionId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendInterventionOutcomeDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to evaluate intervention outcome');
+  return json.data;
+}
+
+export async function fetchMerchantStrategyLearning(merchantId: number | string): Promise<BackendStrategyLearningSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/strategy-learning`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch strategy learning summary for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendStrategyLearningSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve strategy learning summary');
+  return json.data;
+}
+
+export async function evaluateStrategyLearning(merchantId: number | string): Promise<BackendStrategyLearningSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/strategy-learning/evaluate`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to evaluate strategy learning for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendStrategyLearningSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to evaluate strategy learning');
   return json.data;
 }

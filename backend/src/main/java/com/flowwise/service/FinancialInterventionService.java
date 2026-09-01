@@ -21,13 +21,19 @@ public class FinancialInterventionService {
     private final MerchantRepository merchantRepository;
     private final FinancialInterventionRepository interventionRepository;
     private final FinancialActionService actionService;
+    private final EvidenceBuilderService evidenceBuilderService;
+    private final com.flowwise.repository.FinancialStrategyLearningRepository strategyLearningRepository;
 
     public FinancialInterventionService(MerchantRepository merchantRepository,
-                                       FinancialInterventionRepository interventionRepository,
-                                       FinancialActionService actionService) {
+                                        FinancialInterventionRepository interventionRepository,
+                                        FinancialActionService actionService,
+                                        EvidenceBuilderService evidenceBuilderService,
+                                        com.flowwise.repository.FinancialStrategyLearningRepository strategyLearningRepository) {
         this.merchantRepository = merchantRepository;
         this.interventionRepository = interventionRepository;
         this.actionService = actionService;
+        this.evidenceBuilderService = evidenceBuilderService;
+        this.strategyLearningRepository = strategyLearningRepository;
     }
 
     public InterventionSummaryDTO evaluateInterventions(Long merchantId) {
@@ -79,7 +85,16 @@ public class FinancialInterventionService {
         ));
 
         for (InterventionCandidate c : candidates) {
-            BigDecimal priorityScore = computePriorityScore(c.impact, c.urgency, c.riskRed, c.goalImp, c.conf);
+            BigDecimal baseScore = computePriorityScore(c.impact, c.urgency, c.riskRed, c.goalImp, c.conf);
+
+            // Apply Strategy Learning multiplier if present for candidate's interventionType
+            BigDecimal learningMult = BigDecimal.ONE;
+            Optional<com.flowwise.entity.FinancialStrategyLearning> learningOpt = strategyLearningRepository.findByMerchantIdAndInterventionType(merchantId, c.type);
+            if (learningOpt.isPresent()) {
+                learningMult = learningOpt.get().getLearningMultiplier();
+            }
+
+            BigDecimal priorityScore = baseScore.multiply(learningMult).setScale(2, RoundingMode.HALF_UP).min(new BigDecimal("100.00"));
 
             Optional<FinancialIntervention> existingOpt = interventionRepository.findByMerchantIdAndInterventionKey(merchantId, c.key);
             FinancialIntervention intervention = existingOpt.orElseGet(FinancialIntervention::new);
