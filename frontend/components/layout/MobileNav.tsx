@@ -75,6 +75,7 @@ export const MobileNav: React.FC = () => {
     { name: 'Decision Outcomes', href: '/dashboard/financial-decision-outcomes', icon: ChartNoAxesColumnIncreasing, disabled: false },
     { name: 'Decision Portfolio', href: '/dashboard/decision-portfolio', icon: Layers3, disabled: false },
     { name: 'Advisory Action Plan', href: '/dashboard/advisory-action-plan', icon: ListOrdered, disabled: false },
+    { name: 'Action Outcomes', href: '/dashboard/advisory-action-outcomes', icon: ChartNoAxesColumnIncreasing, disabled: false },
     { name: 'Pattern Insights', href: '/dashboard/insights', icon: Sparkles, disabled: false },
     { name: 'Scenarios & Forecast', href: '/dashboard/scenarios', icon: LineChart, disabled: false },
     { name: 'Reconciliation', href: '/dashboard/reconciliation', icon: CheckSquare, disabled: false },

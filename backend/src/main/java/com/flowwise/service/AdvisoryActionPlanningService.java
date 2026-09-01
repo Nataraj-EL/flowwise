@@ -21,15 +21,18 @@ public class AdvisoryActionPlanningService {
     private final AdvisoryActionPlanRepository planRepository;
     private final AdvisoryActionPlanStepRepository stepRepository;
     private final FinancialDecisionPortfolioRepository portfolioRepository;
+    private final AdvisoryActionLearningRepository actionLearningRepository;
 
     public AdvisoryActionPlanningService(MerchantRepository merchantRepository,
                                          AdvisoryActionPlanRepository planRepository,
                                          AdvisoryActionPlanStepRepository stepRepository,
-                                         FinancialDecisionPortfolioRepository portfolioRepository) {
+                                         FinancialDecisionPortfolioRepository portfolioRepository,
+                                         AdvisoryActionLearningRepository actionLearningRepository) {
         this.merchantRepository = merchantRepository;
         this.planRepository = planRepository;
         this.stepRepository = stepRepository;
         this.portfolioRepository = portfolioRepository;
+        this.actionLearningRepository = actionLearningRepository;
     }
 
     public AdvisoryActionPlanDTO evaluateActionPlan(Long merchantId, String horizon) {

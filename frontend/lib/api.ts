@@ -2567,3 +2567,93 @@ export async function archiveAdvisoryActionPlan(
   if (!json.success) throw new Error(json.error || 'Failed to archive advisory action plan');
   return json.data;
 }
+
+// Sprint 41: Advisory Action Outcome & Adaptive Learning Interfaces & API Helpers
+export interface BackendAdvisoryActionOutcomeDTO {
+  id: number;
+  merchantId: number;
+  planId: number;
+  stepId: number;
+  evaluationWindow: '7D' | '30D' | '60D' | '90D';
+  outcomeStatus: 'SUCCESSFUL' | 'PARTIAL' | 'INEFFECTIVE' | 'INSUFFICIENT_DATA';
+  expectedScore: number;
+  actualScore: number;
+  scoreVariancePct: number;
+  expectedOutcome: string;
+  actualOutcome: string;
+  riskReductionExpected: number;
+  riskReductionActual: number;
+  financialImpactExpected: number;
+  financialImpactActual: number;
+  effectivenessScore: number;
+  confidenceStatus: 'HIGH' | 'MODERATE' | 'LIMITED' | 'INSUFFICIENT_DATA';
+  evidenceMetrics: string;
+  assumptions: string;
+  evaluatedAt: string;
+}
+
+export interface BackendAdvisoryActionLearningDTO {
+  id: number;
+  merchantId: number;
+  actionType: string;
+  contextType: string;
+  sampleCount: number;
+  effectivenessScore: number;
+  learningMultiplier: number;
+  confidenceStatus: 'HIGH' | 'MODERATE' | 'LIMITED' | 'INSUFFICIENT_DATA';
+  evidenceMetrics: string;
+  evaluatedAt: string;
+}
+
+export interface BackendAdvisoryActionOutcomeSummaryDTO {
+  merchantId: number;
+  totalEvaluatedOutcomesCount: number;
+  successfulCount: number;
+  partialCount: number;
+  ineffectiveCount: number;
+  insufficientDataCount: number;
+  averageEffectivenessScore: number;
+  outcomes: BackendAdvisoryActionOutcomeDTO[];
+  learnings: BackendAdvisoryActionLearningDTO[];
+  summaryExplanation: string;
+  advisoryNotice: string;
+}
+
+export async function fetchAdvisoryActionOutcomeSummary(
+  merchantId: number | string,
+  window?: string
+): Promise<BackendAdvisoryActionOutcomeSummaryDTO> {
+  const queryString = window ? `?window=${window}` : '';
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/advisory-action-outcomes/summary${queryString}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch advisory action outcome summary for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendAdvisoryActionOutcomeSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve advisory action outcome summary');
+  return json.data;
+}
+
+export async function fetchAdvisoryActionLearnings(
+  merchantId: number | string
+): Promise<BackendAdvisoryActionLearningDTO[]> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/advisory-action-learning`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch advisory action learnings for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendAdvisoryActionLearningDTO[]> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve advisory action learnings');
+  return json.data;
+}
+
+export async function evaluateAdvisoryActionOutcome(
+  merchantId: number | string,
+  planId: number | string,
+  stepId: number | string,
+  window?: string
+): Promise<BackendAdvisoryActionOutcomeDTO> {
+  const queryString = window ? `?window=${window}` : '';
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/advisory-action-plans/${planId}/steps/${stepId}/outcome/evaluate${queryString}`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to evaluate action step outcome for step ID ${stepId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendAdvisoryActionOutcomeDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to evaluate action step outcome');
+  return json.data;
+}

@@ -76,6 +76,7 @@ export const Sidebar: React.FC = () => {
     { name: 'Decision Outcomes', href: '/dashboard/financial-decision-outcomes', icon: ChartNoAxesColumnIncreasing, disabled: false },
     { name: 'Decision Portfolio', href: '/dashboard/decision-portfolio', icon: Layers3, disabled: false },
     { name: 'Advisory Action Plan', href: '/dashboard/advisory-action-plan', icon: ListOrdered, disabled: false },
+    { name: 'Action Outcomes', href: '/dashboard/advisory-action-outcomes', icon: ChartNoAxesColumnIncreasing, disabled: false },
     { name: 'AI Evidence Grounding', href: '/dashboard/evidence-grounding', icon: BrainCircuit, disabled: false },
     { name: 'Plan Outcomes', href: '/dashboard/financial-plan-outcomes', icon: ChartNoAxesCombined, disabled: false },
     { name: 'Scenarios & Forecast', href: '/dashboard/scenarios', icon: LineChart, disabled: false },
