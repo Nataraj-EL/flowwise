@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   TrendingUp,
   LineChart,
+  Activity,
   ArrowRightLeft,
   ShieldAlert,
   Package,
@@ -27,6 +28,7 @@ export const Sidebar: React.FC = () => {
     { name: 'Cash Flow', href: '/dashboard/cashflow', icon: TrendingUp, disabled: false },
     { name: 'Health & Risk', href: '/dashboard/health', icon: ShieldAlert, disabled: false },
     { name: 'Forecast & Scenarios', href: '/dashboard/forecast', icon: LineChart, disabled: false },
+    { name: 'AI Evaluation', href: '/dashboard/evaluation', icon: Activity, disabled: false },
     { name: 'Inventory', href: '/dashboard/inventory', icon: Package, disabled: true, tag: 'SOON' },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings, disabled: true, tag: 'SOON' },
   ];

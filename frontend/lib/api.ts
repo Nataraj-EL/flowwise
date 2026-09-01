@@ -195,6 +195,36 @@ export interface BackendFinancialEvidenceSummaryDTO {
   conclusion: string;
 }
 
+export interface BackendEvaluationCaseResultDTO {
+  caseId: string;
+  question: string;
+  category: string;
+  responseText: string;
+  grounded: boolean;
+  numericalConsistent: boolean;
+  relevant: boolean;
+  evidenceCovered: boolean;
+  fallbackUsed: boolean;
+  latencyMs: number;
+  score: number;
+}
+
+export interface BackendEvaluationSummaryDTO {
+  runId: number;
+  runTimestamp: string;
+  benchmarkVersion: string;
+  totalCases: number;
+  overallScore: number;
+  groundingScore: number;
+  numericalConsistencyScore: number;
+  relevanceScore: number;
+  evidenceCoverageScore: number;
+  unsupportedClaimsCount: number;
+  fallbackRate: number;
+  avgLatencyMs: number;
+  caseResults: BackendEvaluationCaseResultDTO[];
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -347,5 +377,24 @@ export async function simulateMerchantScenario(
   if (!res.ok) throw new Error(`Failed to simulate scenario for merchant ID ${merchantId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendScenarioResultDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to simulate scenario');
+  return json.data;
+}
+
+export async function runEvaluation(): Promise<BackendEvaluationSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/evaluation/run`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to execute evaluation suite (HTTP ${res.status})`);
+  const json: ApiResponse<BackendEvaluationSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to run evaluation');
+  return json.data;
+}
+
+export async function fetchEvaluationSummary(): Promise<BackendEvaluationSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/evaluation/summary`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch evaluation summary (HTTP ${res.status})`);
+  const json: ApiResponse<BackendEvaluationSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve evaluation summary');
   return json.data;
 }
