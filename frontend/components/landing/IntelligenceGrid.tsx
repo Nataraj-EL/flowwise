@@ -26,32 +26,32 @@ export const IntelligenceGrid: React.FC = () => {
   ];
 
   return (
-    <section id="intelligence" className="py-20 bg-[#0A0D14] border-y border-slate-800/80">
+    <section id="intelligence" className="py-24 bg-[#07090E] border-t border-slate-800/60">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <div className="text-center space-y-3">
-          <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
             Financial clarity without the spreadsheet.
           </h2>
-          <p className="text-slate-400 text-sm sm:text-base max-w-xl mx-auto">
+          <p className="text-slate-400 text-base max-w-lg mx-auto">
             Essential intelligence tools designed to give merchants complete confidence over cash flow.
           </p>
         </div>
 
-        {/* 2x2 Clean Grid Layout with Generous Spacing */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Clean 2x2 Layout with Generous Spacing */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
           {capabilities.map((item, index) => {
             const Icon = item.icon;
             return (
               <div
                 key={index}
-                className="bg-[#121622] border border-slate-800 p-8 rounded-2xl space-y-4 hover:border-slate-700 transition-all shadow-lg"
+                className="bg-[#101625] border border-slate-800/80 p-8 rounded-2xl space-y-4 hover:border-slate-700/80 transition-all shadow-lg group"
               >
-                <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/10 to-emerald-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center group-hover:scale-105 transition-transform">
                   <Icon className="w-6 h-6" />
                 </div>
 
-                <div className="space-y-2">
-                  <h3 className="text-lg font-bold text-white">{item.title}</h3>
+                <div className="space-y-1.5">
+                  <h3 className="text-lg font-bold text-white tracking-tight">{item.title}</h3>
                   <p className="text-slate-400 text-sm leading-relaxed">{item.description}</p>
                 </div>
               </div>
