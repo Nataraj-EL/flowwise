@@ -2,47 +2,52 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Menu, X, ArrowRight } from 'lucide-react';
+import { Menu, X, ArrowRight, Activity } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-[#07090E]/80 backdrop-blur-xl border-b border-slate-800/60">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+    <header className="sticky top-0 z-50 w-full bg-[#0B0F19]/90 backdrop-blur-md border-b border-slate-800/80">
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 h-20 flex items-center justify-between">
         {/* Brand Wordmark */}
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 to-emerald-400 p-[1px] shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform">
-            <div className="w-full h-full bg-[#07090E] rounded-[11px] flex items-center justify-center font-mono font-extrabold text-cyan-400 text-xs tracking-tighter">
-              FW
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-teal-400 to-emerald-400 p-[1px] shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform">
+            <div className="w-full h-full bg-[#0B0F19] rounded-[11px] flex items-center justify-center">
+              <Activity className="w-5 h-5 text-cyan-400" />
             </div>
           </div>
-          <span className="text-lg font-bold tracking-tight text-white font-sans group-hover:text-cyan-400 transition-colors">
-            FLOWWISE
-          </span>
+          <div className="flex flex-col">
+            <span className="text-xl font-extrabold tracking-tight text-white font-sans group-hover:text-cyan-400 transition-colors">
+              FLOWWISE
+            </span>
+            <span className="text-[10px] font-mono tracking-widest text-slate-400 uppercase -mt-1">
+              FINANCIAL INTELLIGENCE
+            </span>
+          </div>
         </Link>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-          <a href="#product" className="text-slate-400 hover:text-white transition-colors">
+        <nav className="hidden md:flex items-center gap-10 text-sm font-medium text-slate-300">
+          <a href="#product" className="hover:text-white transition-colors">
             Product
           </a>
-          <a href="#intelligence" className="text-slate-400 hover:text-white transition-colors">
+          <a href="#intelligence" className="hover:text-white transition-colors">
             Intelligence
           </a>
-          <a href="#merchants" className="text-slate-400 hover:text-white transition-colors">
+          <a href="#merchants" className="hover:text-white transition-colors">
             For Merchants
           </a>
         </nav>
 
         {/* Right CTA Button */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-4">
           <Link
             href="/dashboard"
-            className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-950 font-semibold rounded-full text-xs transition-all flex items-center gap-1.5 shadow-md shadow-white/10"
+            className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-emerald-400 hover:from-cyan-400 hover:to-emerald-300 text-slate-950 font-bold rounded-xl text-xs tracking-wider uppercase transition-all flex items-center gap-2 shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/35 hover:scale-[1.02]"
           >
-            View Demo
-            <ArrowRight className="w-3.5 h-3.5" />
+            View Demo Console
+            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
@@ -58,7 +63,7 @@ export const Navbar: React.FC = () => {
 
       {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-[#0D111A] border-b border-slate-800 px-6 pt-4 pb-6 space-y-4 text-sm font-medium">
+        <div className="md:hidden bg-[#0F1422] border-b border-slate-800 px-6 pt-4 pb-6 space-y-4 text-sm font-medium">
           <a
             href="#product"
             className="block text-slate-300 hover:text-white"
@@ -84,10 +89,10 @@ export const Navbar: React.FC = () => {
             <Link
               href="/dashboard"
               onClick={() => setMobileMenuOpen(false)}
-              className="w-full py-2.5 bg-white hover:bg-slate-100 text-slate-950 font-semibold rounded-xl text-xs transition-all flex items-center justify-center gap-2 shadow-md"
+              className="w-full py-3 bg-gradient-to-r from-cyan-500 to-emerald-400 text-slate-950 font-bold rounded-xl text-xs tracking-wider uppercase transition-all flex items-center justify-center gap-2 shadow-md"
             >
-              View Demo
-              <ArrowRight className="w-3.5 h-3.5" />
+              View Demo Console
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>
