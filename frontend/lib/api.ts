@@ -452,6 +452,48 @@ export interface BackendReconciliationSummaryDTO {
   issues: BackendReconciliationIssueDTO[];
 }
 
+export interface BackendPaymentItemDTO {
+  payableId: number;
+  vendor: string;
+  billReference: string;
+  billAmount: number;
+  outstandingAmount: number;
+  billDate: string;
+  dueDate: string;
+  category: string;
+  priority: 'P1_CRITICAL' | 'P2_HIGH' | 'P3_MEDIUM' | 'P4_DEFERRABLE';
+  priorityReason: string;
+  daysUntilDue: number;
+  advisoryStatus: 'RECOMMENDED' | 'HOLD_NEEDS_FUNDS' | 'DEFERRED' | 'UNSCHEDULED';
+}
+
+export interface BackendCashManagementSummaryDTO {
+  currentAvailableCash: number;
+  upcoming7DayObligations: number;
+  upcoming30DayObligations: number;
+  expected7DayCollections: number;
+  expected30DayCollections: number;
+  projected7DayCashPosition: number;
+  projected30DayCashPosition: number;
+  safePaymentCapacity: number;
+  paymentRiskStatus: 'SAFE' | 'CAUTION' | 'AT_RISK';
+  topRecommendedPayments: BackendPaymentItemDTO[];
+  summaryExplanation: string;
+  calculationBasis: string;
+  assumptions: string[];
+  advisoryNotice: string;
+}
+
+export interface BackendPaymentPlanDTO {
+  safePaymentCapacity: number;
+  totalObligations: number;
+  recommendedPaymentTotal: number;
+  deferredPaymentTotal: number;
+  prioritizedPayments: BackendPaymentItemDTO[];
+  deferredPayments: BackendPaymentItemDTO[];
+  executionAdvice: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -832,5 +874,21 @@ export async function ignoreTransaction(transactionId: number | string, notes?: 
   if (!res.ok) throw new Error(`Failed to ignore transaction ID ${transactionId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendTransactionDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to ignore transaction');
+  return json.data;
+}
+
+export async function fetchMerchantCashManagement(merchantId: number | string): Promise<BackendCashManagementSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/cash-management`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch cash management summary for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendCashManagementSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve cash management summary');
+  return json.data;
+}
+
+export async function fetchMerchantPaymentPlan(merchantId: number | string): Promise<BackendPaymentPlanDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/cash-management/payment-plan`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch payment plan for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendPaymentPlanDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve payment plan');
   return json.data;
 }

@@ -26,6 +26,7 @@ public class EvidenceBuilderService {
     private final WorkingCapitalService workingCapitalService;
     private final CommandCenterService commandCenterService;
     private final ReconciliationService reconciliationService;
+    private final CashManagementService cashManagementService;
 
     public EvidenceBuilderService(MerchantRepository merchantRepository,
                                   MerchantService merchantService,
@@ -39,7 +40,8 @@ public class EvidenceBuilderService {
                                   PayablesService payablesService,
                                   WorkingCapitalService workingCapitalService,
                                   CommandCenterService commandCenterService,
-                                  ReconciliationService reconciliationService) {
+                                  ReconciliationService reconciliationService,
+                                  CashManagementService cashManagementService) {
         this.merchantRepository = merchantRepository;
         this.merchantService = merchantService;
         this.cashFlowService = cashFlowService;
@@ -53,6 +55,7 @@ public class EvidenceBuilderService {
         this.workingCapitalService = workingCapitalService;
         this.commandCenterService = commandCenterService;
         this.reconciliationService = reconciliationService;
+        this.cashManagementService = cashManagementService;
     }
 
     public FinancialEvidenceSummaryDTO buildEvidenceSummary(Long merchantId, String question) {
@@ -67,7 +70,9 @@ public class EvidenceBuilderService {
         String qLower = question.toLowerCase(Locale.ROOT);
         
         // 1. Detect Intent Category
-        if (qLower.contains("duplicate") || qLower.contains("reconcil") || qLower.contains("unreviewed") || qLower.contains("suspicious")) {
+        if (qLower.contains("pay my bills") || qLower.contains("can i pay") || qLower.contains("pay first") || qLower.contains("safely spend") || qLower.contains("payment capacity") || qLower.contains("payment plan") || qLower.contains("spend")) {
+            return buildCashManagementEvidence(merchantId, question);
+        } else if (qLower.contains("duplicate") || qLower.contains("reconcil") || qLower.contains("unreviewed") || qLower.contains("suspicious")) {
             return buildReconciliationEvidence(merchantId, question);
         } else if (qLower.contains("today") || qLower.contains("briefing") || qLower.contains("attention") || qLower.contains("command center") || qLower.contains("executive")) {
             return buildCommandCenterEvidence(merchantId, question);
@@ -384,6 +389,39 @@ public class EvidenceBuilderService {
                 items,
                 assumptions,
                 recon.getDuplicateIssuesCount() > 0 || recon.getUnreviewedCount() > 5 ? "ACTION_REQUIRED" : "HEALTHY",
+                conclusion
+        );
+    }
+
+    private FinancialEvidenceSummaryDTO buildCashManagementEvidence(Long merchantId, String question) {
+        CashManagementSummaryDTO cashMgmt = cashManagementService.getCashManagementSummary(merchantId);
+
+        List<EvidenceItemDTO> items = new ArrayList<>();
+        items.add(new EvidenceItemDTO("Current Available Cash", cashMgmt.getCurrentAvailableCash(), "INR", "Bank Accounts", "Current", "ACTUAL", "Available liquid bank cash across connected accounts", "HIGH"));
+        items.add(new EvidenceItemDTO("Upcoming 7-Day Obligations", cashMgmt.getUpcoming7DayObligations(), "INR", "Payables Engine", "Next 7 Days", "ACTUAL", "Bills due today or within 7 days", "HIGH"));
+        items.add(new EvidenceItemDTO("Upcoming 30-Day Obligations", cashMgmt.getUpcoming30DayObligations(), "INR", "Payables Engine", "Next 30 Days", "ACTUAL", "Total unpaid bills due within 30 days", "HIGH"));
+        items.add(new EvidenceItemDTO("Expected 7-Day Collections", cashMgmt.getExpected7DayCollections(), "INR", "Receivables Engine", "Next 7 Days", "ESTIMATE", "Estimated collections from current receivables", "MODERATE"));
+        items.add(new EvidenceItemDTO("Projected 7-Day Cash Position", cashMgmt.getProjected7DayCashPosition(), "INR", "Cash Management Engine", "7-Day Buffer", "ESTIMATE", "Available Cash + Collections - 7D Obligations", "HIGH"));
+        items.add(new EvidenceItemDTO("Safe Payment Capacity (Advisory)", cashMgmt.getSafePaymentCapacity(), "INR", "Cash Management Engine", "Operational Limit", "ESTIMATE", "Max recommended payment amount after safety reserves", "HIGH"));
+        items.add(new EvidenceItemDTO("Payment Risk Status", cashMgmt.getPaymentRiskStatus(), "Status", "Cash Management Engine", "Current", "ACTUAL", "Risk tier: SAFE, CAUTION, or AT_RISK", "HIGH"));
+
+        List<String> assumptions = new ArrayList<>(cashMgmt.getAssumptions());
+
+        String topPaymentTitle = !cashMgmt.getTopRecommendedPayments().isEmpty() 
+                ? cashMgmt.getTopRecommendedPayments().get(0).getVendor() + " (₹" + cashMgmt.getTopRecommendedPayments().get(0).getOutstandingAmount() + ")"
+                : "No pending payables";
+
+        String conclusion = "Cash Management Advisory: Payment Risk Status is " + cashMgmt.getPaymentRiskStatus() 
+                + ". Safe payment capacity is estimated at ₹" + cashMgmt.getSafePaymentCapacity() 
+                + " against 7-day obligations of ₹" + cashMgmt.getUpcoming7DayObligations() 
+                + ". Highest priority payment: " + topPaymentTitle + ".";
+
+        return new FinancialEvidenceSummaryDTO(
+                question,
+                "CASH_MANAGEMENT",
+                items,
+                assumptions,
+                "AT_RISK".equalsIgnoreCase(cashMgmt.getPaymentRiskStatus()) ? "ACTION_REQUIRED" : "HEALTHY",
                 conclusion
         );
     }

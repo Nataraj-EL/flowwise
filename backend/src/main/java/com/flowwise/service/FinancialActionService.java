@@ -26,6 +26,7 @@ public class FinancialActionService {
     private final PayablesService payablesService;
     private final WorkingCapitalService workingCapitalService;
     private final ReconciliationService reconciliationService;
+    private final CashManagementService cashManagementService;
 
     public FinancialActionService(MerchantRepository merchantRepository,
                                   FinancialActionRepository actionRepository,
@@ -35,7 +36,8 @@ public class FinancialActionService {
                                   ReceivablesService receivablesService,
                                   PayablesService payablesService,
                                   WorkingCapitalService workingCapitalService,
-                                  ReconciliationService reconciliationService) {
+                                  ReconciliationService reconciliationService,
+                                  CashManagementService cashManagementService) {
         this.merchantRepository = merchantRepository;
         this.actionRepository = actionRepository;
         this.cashFlowService = cashFlowService;
@@ -45,6 +47,7 @@ public class FinancialActionService {
         this.payablesService = payablesService;
         this.workingCapitalService = workingCapitalService;
         this.reconciliationService = reconciliationService;
+        this.cashManagementService = cashManagementService;
     }
 
     public ActionSummaryDTO getMerchantActions(Long merchantId) {
@@ -227,7 +230,33 @@ public class FinancialActionService {
                 );
             }
 
-            // Rule 10: Low Priority Opportunity / Healthy Position
+            // Rule 10: Cash Management Safe Payment Capacity & Advisory Notice
+            CashManagementSummaryDTO cashMgmt = cashManagementService.getCashManagementSummary(merchantId);
+            if ("AT_RISK".equalsIgnoreCase(cashMgmt.getPaymentRiskStatus()) || "CAUTION".equalsIgnoreCase(cashMgmt.getPaymentRiskStatus())) {
+                createOrUpdateAction(
+                        merchantId,
+                        "ACT-PAYMENT-RISK-WARNING",
+                        "Cash Obligations & Safe Payment Advisory (" + cashMgmt.getPaymentRiskStatus() + ")",
+                        "AT_RISK".equalsIgnoreCase(cashMgmt.getPaymentRiskStatus()) ? "HIGH" : "MEDIUM",
+                        "CASH_MANAGEMENT",
+                        "7-day obligations of ₹" + cashMgmt.getUpcoming7DayObligations() + " exceed safe payment capacity of ₹" + cashMgmt.getSafePaymentCapacity() + ".",
+                        "Available Cash: ₹" + cashMgmt.getCurrentAvailableCash() + " | Projected 7-Day Cash: ₹" + cashMgmt.getProjected7DayCashPosition() + " | Safe Limit: ₹" + cashMgmt.getSafePaymentCapacity(),
+                        "Review Payment Plan to prioritize P1 critical obligations and defer non-essential expenses."
+                );
+            } else {
+                createOrUpdateAction(
+                        merchantId,
+                        "ACT-SAFE-PAYMENT-CAPACITY",
+                        "Optimal Safe Payment Capacity (₹" + cashMgmt.getSafePaymentCapacity() + ")",
+                        "LOW",
+                        "CASH_MANAGEMENT",
+                        "Available cash and near-term collections comfortably cover 30-day obligations.",
+                        "Safe Payment Capacity: ₹" + cashMgmt.getSafePaymentCapacity() + " | 30-Day Obligations: ₹" + cashMgmt.getUpcoming30DayObligations(),
+                        "Proceed with prioritized vendor payment schedule."
+                );
+            }
+
+            // Rule 11: Low Priority Opportunity / Healthy Position
             if (health.getOverallScore() >= 70) {
                 createOrUpdateAction(
                         merchantId,
