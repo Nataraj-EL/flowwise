@@ -425,6 +425,33 @@ export interface BackendCommandCenterSnapshotDTO {
   generatedAt: string;
 }
 
+export interface BackendReconciliationIssueDTO {
+  id: string;
+  transactionId?: number;
+  issueType: 'DUPLICATE' | 'UNCATEGORIZED' | 'SUSPICIOUS_AMOUNT' | 'OFFICE_KIT_PENDING';
+  severity: 'HIGH' | 'MEDIUM' | 'LOW';
+  description: string;
+  counterparty: string;
+  amount: number;
+  transactionDate: string;
+  reconciliationStatus: 'UNREVIEWED' | 'RECONCILED' | 'IGNORED' | 'FLAGGED';
+  evidenceDetails: string;
+}
+
+export interface BackendReconciliationSummaryDTO {
+  totalTransactions: number;
+  reconciledCount: number;
+  unreviewedCount: number;
+  ignoredCount: number;
+  flaggedCount: number;
+  duplicateIssuesCount: number;
+  uncategorizedIssuesCount: number;
+  suspiciousIssuesCount: number;
+  officeKitPendingCount: number;
+  reconciliationHealthPct: number;
+  issues: BackendReconciliationIssueDTO[];
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -763,5 +790,47 @@ export async function fetchAccountSummary(
   if (!res.ok) throw new Error(`Failed to fetch summary for account ID ${accountId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendAccountDetailDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to retrieve account summary');
+  return json.data;
+}
+
+export async function fetchMerchantReconciliation(merchantId: number | string): Promise<BackendReconciliationSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/reconciliation`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch reconciliation summary for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendReconciliationSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve reconciliation summary');
+  return json.data;
+}
+
+export async function fetchMerchantReconciliationIssues(merchantId: number | string): Promise<BackendReconciliationIssueDTO[]> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/reconciliation/issues`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch reconciliation issues for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendReconciliationIssueDTO[]> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve reconciliation issues');
+  return json.data;
+}
+
+export async function reconcileTransaction(transactionId: number | string, notes?: string): Promise<BackendTransactionDTO> {
+  const res = await fetch(`${API_BASE_URL}/transactions/${transactionId}/reconcile`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notes }),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to reconcile transaction ID ${transactionId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendTransactionDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to reconcile transaction');
+  return json.data;
+}
+
+export async function ignoreTransaction(transactionId: number | string, notes?: string): Promise<BackendTransactionDTO> {
+  const res = await fetch(`${API_BASE_URL}/transactions/${transactionId}/ignore`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notes }),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to ignore transaction ID ${transactionId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendTransactionDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to ignore transaction');
   return json.data;
 }

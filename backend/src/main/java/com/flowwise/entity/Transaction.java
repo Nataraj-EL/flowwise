@@ -59,6 +59,15 @@ public class Transaction {
     @Column(name = "ingestion_timestamp")
     private Instant ingestionTimestamp;
 
+    @Column(name = "reconciliation_status")
+    private String reconciliationStatus = "UNREVIEWED"; // UNREVIEWED, RECONCILED, IGNORED, FLAGGED
+
+    @Column(name = "reconciliation_notes")
+    private String reconciliationNotes;
+
+    @Column(name = "reconciled_at")
+    private Instant reconciledAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -143,6 +152,15 @@ public class Transaction {
 
     public Instant getIngestionTimestamp() { return ingestionTimestamp; }
     public void setIngestionTimestamp(Instant ingestionTimestamp) { this.ingestionTimestamp = ingestionTimestamp; }
+
+    public String getReconciliationStatus() { return reconciliationStatus; }
+    public void setReconciliationStatus(String reconciliationStatus) { this.reconciliationStatus = reconciliationStatus; }
+
+    public String getReconciliationNotes() { return reconciliationNotes; }
+    public void setReconciliationNotes(String reconciliationNotes) { this.reconciliationNotes = reconciliationNotes; }
+
+    public Instant getReconciledAt() { return reconciledAt; }
+    public void setReconciledAt(Instant reconciledAt) { this.reconciledAt = reconciledAt; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }

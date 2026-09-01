@@ -25,6 +25,7 @@ public class EvidenceBuilderService {
     private final PayablesService payablesService;
     private final WorkingCapitalService workingCapitalService;
     private final CommandCenterService commandCenterService;
+    private final ReconciliationService reconciliationService;
 
     public EvidenceBuilderService(MerchantRepository merchantRepository,
                                   MerchantService merchantService,
@@ -37,7 +38,8 @@ public class EvidenceBuilderService {
                                   ReceivablesService receivablesService,
                                   PayablesService payablesService,
                                   WorkingCapitalService workingCapitalService,
-                                  CommandCenterService commandCenterService) {
+                                  CommandCenterService commandCenterService,
+                                  ReconciliationService reconciliationService) {
         this.merchantRepository = merchantRepository;
         this.merchantService = merchantService;
         this.cashFlowService = cashFlowService;
@@ -50,6 +52,7 @@ public class EvidenceBuilderService {
         this.payablesService = payablesService;
         this.workingCapitalService = workingCapitalService;
         this.commandCenterService = commandCenterService;
+        this.reconciliationService = reconciliationService;
     }
 
     public FinancialEvidenceSummaryDTO buildEvidenceSummary(Long merchantId, String question) {
@@ -64,7 +67,9 @@ public class EvidenceBuilderService {
         String qLower = question.toLowerCase(Locale.ROOT);
         
         // 1. Detect Intent Category
-        if (qLower.contains("today") || qLower.contains("briefing") || qLower.contains("attention") || qLower.contains("command center") || qLower.contains("executive")) {
+        if (qLower.contains("duplicate") || qLower.contains("reconcil") || qLower.contains("unreviewed") || qLower.contains("suspicious")) {
+            return buildReconciliationEvidence(merchantId, question);
+        } else if (qLower.contains("today") || qLower.contains("briefing") || qLower.contains("attention") || qLower.contains("command center") || qLower.contains("executive")) {
             return buildCommandCenterEvidence(merchantId, question);
         } else if (qLower.contains("working capital") || qLower.contains("obligation") || qLower.contains("stuck") || qLower.contains("coverage") || qLower.contains("gap") || qLower.contains("biggest cash pressure")) {
             return buildWorkingCapitalEvidence(merchantId, question);
@@ -348,6 +353,37 @@ public class EvidenceBuilderService {
                 items,
                 assumptions,
                 "AT_RISK".equalsIgnoreCase(snapshot.getOverallFinancialStatus()) ? "ACTION_REQUIRED" : "HEALTHY",
+                conclusion
+        );
+    }
+
+    private FinancialEvidenceSummaryDTO buildReconciliationEvidence(Long merchantId, String question) {
+        ReconciliationSummaryDTO recon = reconciliationService.getReconciliationSummary(merchantId);
+
+        List<EvidenceItemDTO> items = new ArrayList<>();
+        items.add(new EvidenceItemDTO("Reconciliation Health Score", recon.getReconciliationHealthPct(), "%", "Reconciliation Engine", "Audit Ledger", "ACTUAL", "Percentage of reconciled/ignored transactions", "HIGH"));
+        items.add(new EvidenceItemDTO("Total Processed Transactions", recon.getTotalTransactions(), "Count", "Transaction Engine", "Bank Feeds", "ACTUAL", "Total ingested transaction count", "HIGH"));
+        items.add(new EvidenceItemDTO("Unreviewed Transactions", recon.getUnreviewedCount(), "Count", "Reconciliation Engine", "Review Queue", "ACTUAL", "Transactions awaiting merchant review", "HIGH"));
+        items.add(new EvidenceItemDTO("Potential Duplicate Issues", recon.getDuplicateIssuesCount(), "Count", "Reconciliation Engine", "Duplicate Detection", "ACTUAL", "Transactions with matching amount & vendor within 3 days", "HIGH"));
+        items.add(new EvidenceItemDTO("Uncategorized Transactions", recon.getUncategorizedIssuesCount(), "Count", "Reconciliation Engine", "Category Audit", "ACTUAL", "Transactions missing category mapping", "HIGH"));
+        items.add(new EvidenceItemDTO("Suspicious High-Value Outflows", recon.getSuspiciousIssuesCount(), "Count", "Reconciliation Engine", "Anomaly Threshold", "ACTUAL", "Outflow debits > ₹1,00,000", "HIGH"));
+        items.add(new EvidenceItemDTO("Pending Office Kit Captures", recon.getOfficeKitPendingCount(), "Count", "Office Kit Engine", "Capture Queue", "ACTUAL", "Document captures pending review", "HIGH"));
+
+        List<String> assumptions = new ArrayList<>();
+        assumptions.add("Reconciliation Health: " + recon.getReconciliationHealthPct() + "%");
+        assumptions.add("Duplicate Items Detected: " + recon.getDuplicateIssuesCount());
+        assumptions.add("Unreviewed Items Pending: " + recon.getUnreviewedCount());
+
+        String conclusion = "Reconciliation Status: Health Score is " + recon.getReconciliationHealthPct() 
+                + "%. Unreviewed transactions: " + recon.getUnreviewedCount() + ", Duplicate issues: " 
+                + recon.getDuplicateIssuesCount() + ", Suspicious items: " + recon.getSuspiciousIssuesCount() + ".";
+
+        return new FinancialEvidenceSummaryDTO(
+                question,
+                "RECONCILIATION",
+                items,
+                assumptions,
+                recon.getDuplicateIssuesCount() > 0 || recon.getUnreviewedCount() > 5 ? "ACTION_REQUIRED" : "HEALTHY",
                 conclusion
         );
     }

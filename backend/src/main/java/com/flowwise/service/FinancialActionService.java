@@ -25,6 +25,7 @@ public class FinancialActionService {
     private final ReceivablesService receivablesService;
     private final PayablesService payablesService;
     private final WorkingCapitalService workingCapitalService;
+    private final ReconciliationService reconciliationService;
 
     public FinancialActionService(MerchantRepository merchantRepository,
                                   FinancialActionRepository actionRepository,
@@ -33,7 +34,8 @@ public class FinancialActionService {
                                   TemporalIntelligenceService temporalService,
                                   ReceivablesService receivablesService,
                                   PayablesService payablesService,
-                                  WorkingCapitalService workingCapitalService) {
+                                  WorkingCapitalService workingCapitalService,
+                                  ReconciliationService reconciliationService) {
         this.merchantRepository = merchantRepository;
         this.actionRepository = actionRepository;
         this.cashFlowService = cashFlowService;
@@ -42,6 +44,7 @@ public class FinancialActionService {
         this.receivablesService = receivablesService;
         this.payablesService = payablesService;
         this.workingCapitalService = workingCapitalService;
+        this.reconciliationService = reconciliationService;
     }
 
     public ActionSummaryDTO getMerchantActions(Long merchantId) {
@@ -209,7 +212,22 @@ public class FinancialActionService {
                 );
             }
 
-            // Rule 9: Low Priority Opportunity / Healthy Position
+            // Rule 9: High Priority Transaction Reconciliation & Duplicate Review
+            ReconciliationSummaryDTO recon = reconciliationService.getReconciliationSummary(merchantId);
+            if (recon.getDuplicateIssuesCount() > 0 || recon.getUnreviewedCount() > 5) {
+                createOrUpdateAction(
+                        merchantId,
+                        "ACT-RECONCILIATION-REQUIRED",
+                        "Transaction Reconciliation & Duplicate Review (" + recon.getUnreviewedCount() + " Unreviewed)",
+                        recon.getDuplicateIssuesCount() > 0 ? "HIGH" : "MEDIUM",
+                        "RECONCILIATION",
+                        "Active ledger contains " + recon.getUnreviewedCount() + " unreviewed items and " + recon.getDuplicateIssuesCount() + " potential duplicate transactions.",
+                        "Reconciliation Health: " + recon.getReconciliationHealthPct() + "% | Duplicates: " + recon.getDuplicateIssuesCount() + " | Unreviewed: " + recon.getUnreviewedCount(),
+                        "Review flagged items in Reconciliation Console to preserve financial audit accuracy."
+                );
+            }
+
+            // Rule 10: Low Priority Opportunity / Healthy Position
             if (health.getOverallScore() >= 70) {
                 createOrUpdateAction(
                         merchantId,
