@@ -334,6 +334,37 @@ export interface BackendReceivablesSummaryDTO {
   receivables: BackendReceivableDTO[];
 }
 
+export interface BackendPayableDTO {
+  id: number;
+  merchantId: number;
+  vendor: string;
+  billReference: string;
+  billAmount: number;
+  amountPaid: number;
+  outstandingAmount: number;
+  billDate: string;
+  dueDate: string;
+  category: string;
+  status: 'DUE_TODAY' | 'DUE_7_DAYS' | 'DUE_30_DAYS' | 'OVERDUE' | 'PAID';
+  daysUntilDue: number;
+}
+
+export interface BackendPayablesSummaryDTO {
+  totalOutstanding: number;
+  dueToday: number;
+  due7Days: number;
+  due30Days: number;
+  totalOverdue: number;
+  totalPaid: number;
+  paymentCoverageRatioPct: number;
+  upcomingPayablePressure: number;
+  largestVendorObligation: string;
+  largestVendorAmount: number;
+  totalBillsCount: number;
+  overdueBillsCount: number;
+  payables: BackendPayableDTO[];
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -621,5 +652,21 @@ export async function fetchMerchantReceivablesSummary(merchantId: number | strin
   if (!res.ok) throw new Error(`Failed to fetch receivables summary for merchant ID ${merchantId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendReceivablesSummaryDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to retrieve receivables summary');
+  return json.data;
+}
+
+export async function fetchMerchantPayables(merchantId: number | string): Promise<BackendPayableDTO[]> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/payables`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch payables for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendPayableDTO[]> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve payables');
+  return json.data;
+}
+
+export async function fetchMerchantPayablesSummary(merchantId: number | string): Promise<BackendPayablesSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/payables/summary`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch payables summary for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendPayablesSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve payables summary');
   return json.data;
 }

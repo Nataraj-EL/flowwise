@@ -22,6 +22,7 @@ public class EvidenceBuilderService {
     private final ForecastingService forecastingService;
     private final FinancialActionService actionService;
     private final ReceivablesService receivablesService;
+    private final PayablesService payablesService;
 
     public EvidenceBuilderService(MerchantRepository merchantRepository,
                                   MerchantService merchantService,
@@ -31,7 +32,8 @@ public class EvidenceBuilderService {
                                   TemporalIntelligenceService temporalService,
                                   ForecastingService forecastingService,
                                   FinancialActionService actionService,
-                                  ReceivablesService receivablesService) {
+                                  ReceivablesService receivablesService,
+                                  PayablesService payablesService) {
         this.merchantRepository = merchantRepository;
         this.merchantService = merchantService;
         this.cashFlowService = cashFlowService;
@@ -41,6 +43,7 @@ public class EvidenceBuilderService {
         this.forecastingService = forecastingService;
         this.actionService = actionService;
         this.receivablesService = receivablesService;
+        this.payablesService = payablesService;
     }
 
     public FinancialEvidenceSummaryDTO buildEvidenceSummary(Long merchantId, String question) {
@@ -55,7 +58,9 @@ public class EvidenceBuilderService {
         String qLower = question.toLowerCase(Locale.ROOT);
         
         // 1. Detect Intent Category
-        if (qLower.contains("owed") || qLower.contains("receivable") || qLower.contains("unpaid") || qLower.contains("debtor") || qLower.contains("concentration")) {
+        if (qLower.contains("payable") || qLower.contains("bill") || qLower.contains("vendor") || qLower.contains("owe") || qLower.contains("rent") || qLower.contains("utility")) {
+            return buildPayablesEvidence(merchantId, question);
+        } else if (qLower.contains("owed") || qLower.contains("receivable") || qLower.contains("unpaid") || qLower.contains("debtor") || qLower.contains("concentration")) {
             return buildReceivablesEvidence(merchantId, question);
         } else if (qLower.contains("afford") || qLower.contains("inventory") || qLower.contains("80,000") || qLower.contains("80000") || qLower.contains("buy") || qLower.contains("purchase")) {
             return buildAffordabilityEvidence(merchantId, question);
@@ -246,6 +251,34 @@ public class EvidenceBuilderService {
                 items,
                 assumptions,
                 recv.getOverdueRatioPct().compareTo(new BigDecimal("30.0")) > 0 ? "ATTENTION_REQUIRED" : "HEALTHY",
+                conclusion
+        );
+    }
+
+    private FinancialEvidenceSummaryDTO buildPayablesEvidence(Long merchantId, String question) {
+        PayablesSummaryDTO pay = payablesService.getPayablesSummary(merchantId);
+
+        List<EvidenceItemDTO> items = new ArrayList<>();
+        items.add(new EvidenceItemDTO("Total Outstanding Payables", pay.getTotalOutstanding(), "INR", "Payables Engine", "Vendor Ledger", "ACTUAL", "Sum of unpaid vendor bills and statutory obligations", "HIGH"));
+        items.add(new EvidenceItemDTO("Due Today", pay.getDueToday(), "INR", "Payables Engine", "Due Date Ledger", "ACTUAL", "Obligations past or due on current date", "HIGH"));
+        items.add(new EvidenceItemDTO("Due Within 7 Days", pay.getDue7Days(), "INR", "Payables Engine", "Due Date Ledger", "ACTUAL", "Upcoming obligations due in next 7 days", "HIGH"));
+        items.add(new EvidenceItemDTO("Total Overdue Vendor Payables", pay.getTotalOverdue(), "INR", "Payables Engine", "Overdue Ledger", "ACTUAL", "Vendor obligations past due date", "HIGH"));
+        items.add(new EvidenceItemDTO("Upcoming Payment Pressure", pay.getUpcomingPayablePressure(), "INR", "Payables Engine", "Pressure Window", "ACTUAL", "Due today + Due 7-Day + Overdue obligations requiring cash", "HIGH"));
+        items.add(new EvidenceItemDTO("Payment Coverage Ratio", pay.getPaymentCoverageRatioPct(), "%", "Payables Engine", "Settlement Ledger", "ACTUAL", "Percentage of total vendor bills paid to date", "HIGH"));
+
+        List<String> assumptions = Arrays.asList(
+                "Calculated using exact vendor bill due dates and settled disbursements.",
+                "Does not assume speculative credit terms or unverified payment extensions."
+        );
+
+        String conclusion = "Total outstanding payables stand at ₹" + pay.getTotalOutstanding() + ", with near-term payment pressure of ₹" + pay.getUpcomingPayablePressure() + " (Due Today: ₹" + pay.getDueToday() + ", Due 7-Day: ₹" + pay.getDue7Days() + ", Overdue: ₹" + pay.getTotalOverdue() + "). Largest vendor obligation is " + pay.getLargestVendorObligation() + " (₹" + pay.getLargestVendorAmount() + ").";
+
+        return new FinancialEvidenceSummaryDTO(
+                question,
+                "PAYABLES",
+                items,
+                assumptions,
+                pay.getTotalOverdue().compareTo(BigDecimal.ZERO) > 0 ? "ACTION_REQUIRED" : "HEALTHY",
                 conclusion
         );
     }

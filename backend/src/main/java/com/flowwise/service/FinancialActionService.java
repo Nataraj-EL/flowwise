@@ -23,19 +23,22 @@ public class FinancialActionService {
     private final BusinessHealthService healthService;
     private final TemporalIntelligenceService temporalService;
     private final ReceivablesService receivablesService;
+    private final PayablesService payablesService;
 
     public FinancialActionService(MerchantRepository merchantRepository,
                                   FinancialActionRepository actionRepository,
                                   CashFlowService cashFlowService,
                                   BusinessHealthService healthService,
                                   TemporalIntelligenceService temporalService,
-                                  ReceivablesService receivablesService) {
+                                  ReceivablesService receivablesService,
+                                  PayablesService payablesService) {
         this.merchantRepository = merchantRepository;
         this.actionRepository = actionRepository;
         this.cashFlowService = cashFlowService;
         this.healthService = healthService;
         this.temporalService = temporalService;
         this.receivablesService = receivablesService;
+        this.payablesService = payablesService;
     }
 
     public ActionSummaryDTO getMerchantActions(Long merchantId) {
@@ -159,7 +162,36 @@ public class FinancialActionService {
                 );
             }
 
-            // Rule 6: Low Priority Opportunity / Healthy Position
+            // Rule 6: High Priority Overdue Vendor Payables
+            PayablesSummaryDTO pay = payablesService.getPayablesSummary(merchantId);
+            if (pay.getTotalOverdue() != null && pay.getTotalOverdue().compareTo(BigDecimal.ZERO) > 0) {
+                createOrUpdateAction(
+                        merchantId,
+                        "ACT-PAYABLES-OVERDUE",
+                        "Overdue Vendor Bills (" + pay.getOverdueBillsCount() + " Overdue)",
+                        "HIGH",
+                        "PAYABLE_PRESSURE",
+                        "₹" + pay.getTotalOverdue() + " in vendor bills are past due date. Resolving overdue obligations prevents supply chain disruption and late fee penalties.",
+                        "Total Overdue Payables: ₹" + pay.getTotalOverdue() + " | Largest Vendor Obligation: " + pay.getLargestVendorObligation(),
+                        "Prioritize settlement of overdue vendor bills starting with " + pay.getLargestVendorObligation() + "."
+                );
+            }
+
+            // Rule 7: High/Medium Priority Near-Term Payable Pressure
+            if (pay.getUpcomingPayablePressure() != null && pay.getUpcomingPayablePressure().compareTo(new BigDecimal("50000.00")) > 0) {
+                createOrUpdateAction(
+                        merchantId,
+                        "ACT-PAYABLE-PRESSURE",
+                        "High Near-Term Payable Pressure (₹" + pay.getUpcomingPayablePressure() + ")",
+                        "HIGH",
+                        "PAYABLE_PRESSURE",
+                        "Upcoming short-term obligations of ₹" + pay.getUpcomingPayablePressure() + " (Due Today: ₹" + pay.getDueToday() + ", 7-Day: ₹" + pay.getDue7Days() + ") require liquidity allocation.",
+                        "Near-Term Pressure: ₹" + pay.getUpcomingPayablePressure() + " | Available Cash: ₹" + cashFlow.getOperatingInflows(),
+                        "Reserve liquid funds in primary business account before vendor due dates."
+                );
+            }
+
+            // Rule 8: Low Priority Opportunity / Healthy Position
             if (health.getOverallScore() >= 70) {
                 createOrUpdateAction(
                         merchantId,
