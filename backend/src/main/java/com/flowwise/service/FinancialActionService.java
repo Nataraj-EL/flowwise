@@ -28,6 +28,7 @@ public class FinancialActionService {
     private final ReconciliationService reconciliationService;
     private final CashManagementService cashManagementService;
     private final FinancialGoalService goalService;
+    private final FinancialInsightService insightService;
 
     public FinancialActionService(MerchantRepository merchantRepository,
                                   FinancialActionRepository actionRepository,
@@ -39,7 +40,8 @@ public class FinancialActionService {
                                   WorkingCapitalService workingCapitalService,
                                   ReconciliationService reconciliationService,
                                   CashManagementService cashManagementService,
-                                  FinancialGoalService goalService) {
+                                  FinancialGoalService goalService,
+                                  FinancialInsightService insightService) {
         this.merchantRepository = merchantRepository;
         this.actionRepository = actionRepository;
         this.cashFlowService = cashFlowService;
@@ -51,6 +53,7 @@ public class FinancialActionService {
         this.reconciliationService = reconciliationService;
         this.cashManagementService = cashManagementService;
         this.goalService = goalService;
+        this.insightService = insightService;
     }
 
     public ActionSummaryDTO getMerchantActions(Long merchantId) {
@@ -299,6 +302,23 @@ public class FinancialActionService {
                         "Health Score: " + health.getOverallScore() + "/100 | Liquidity Status: " + cashFlow.getLiquidityStatus(),
                         "Consider deploying excess cash into inventory pre-purchases to secure bulk supplier discounts."
                 );
+            }
+
+            // Rule 13: High Severity Pattern Insight Alerts
+            List<FinancialInsightDTO> insights = insightService.getMerchantInsights(merchantId);
+            for (FinancialInsightDTO in : insights) {
+                if ("HIGH".equalsIgnoreCase(in.getSeverity()) && !"DISMISSED".equalsIgnoreCase(in.getStatus())) {
+                    createOrUpdateAction(
+                            merchantId,
+                            "ACT-PATTERN-INSIGHT-" + in.getId(),
+                            "Financial Pattern Alert: " + in.getTitle(),
+                            "HIGH",
+                            "PATTERN_INSIGHT",
+                            in.getDescription(),
+                            "Metrics: " + in.getEvidenceMetrics() + " | Period: " + in.getDetectedPeriod(),
+                            "Review Insight Details in Insights Console to mitigate recurring pattern risk."
+                    );
+                }
             }
 
         } catch (Exception ignored) {}

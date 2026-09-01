@@ -569,6 +569,35 @@ export interface BackendDecisionSummaryDTO {
   successRatePct: number;
 }
 
+export interface BackendFinancialInsightDTO {
+  id: number;
+  merchantId: number;
+  insightType: string;
+  title: string;
+  severity: 'HIGH' | 'MEDIUM' | 'LOW';
+  description: string;
+  evidenceMetrics: string;
+  detectedPeriod: string;
+  status: 'NEW' | 'ACKNOWLEDGED' | 'DISMISSED';
+  confidenceStatus: 'HIGH' | 'MODERATE' | 'LIMITED';
+  calculationType: 'ACTUAL' | 'ESTIMATE';
+  assumptions?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BackendInsightSummaryDTO {
+  totalInsights: number;
+  newCount: number;
+  acknowledgedCount: number;
+  dismissedCount: number;
+  highSeverityCount: number;
+  mediumSeverityCount: number;
+  lowSeverityCount: number;
+  sufficientHistory: boolean;
+  patternEngineStatus: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -1111,5 +1140,49 @@ export async function recordDecisionOutcome(
   if (!res.ok) throw new Error(`Failed to record outcome for decision ID ${decisionId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendFinancialDecisionDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to record decision outcome');
+  return json.data;
+}
+
+export async function fetchMerchantInsights(merchantId: number | string): Promise<BackendFinancialInsightDTO[]> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/insights`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch insights for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialInsightDTO[]> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve insights');
+  return json.data;
+}
+
+export async function fetchMerchantInsightSummary(merchantId: number | string): Promise<BackendInsightSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/insights/summary`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch insight summary for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendInsightSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve insight summary');
+  return json.data;
+}
+
+export async function acknowledgeInsight(
+  merchantId: number | string,
+  insightId: number | string
+): Promise<BackendFinancialInsightDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/insights/${insightId}/acknowledge`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to acknowledge insight ID ${insightId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialInsightDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to acknowledge insight');
+  return json.data;
+}
+
+export async function dismissInsight(
+  merchantId: number | string,
+  insightId: number | string
+): Promise<BackendFinancialInsightDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/insights/${insightId}/dismiss`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to dismiss insight ID ${insightId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialInsightDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to dismiss insight');
   return json.data;
 }

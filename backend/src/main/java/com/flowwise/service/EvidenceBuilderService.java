@@ -29,6 +29,7 @@ public class EvidenceBuilderService {
     private final CashManagementService cashManagementService;
     private final FinancialGoalService goalService;
     private final FinancialDecisionService decisionService;
+    private final FinancialInsightService insightService;
 
     public EvidenceBuilderService(MerchantRepository merchantRepository,
                                   MerchantService merchantService,
@@ -45,7 +46,8 @@ public class EvidenceBuilderService {
                                   ReconciliationService reconciliationService,
                                   CashManagementService cashManagementService,
                                   FinancialGoalService goalService,
-                                  FinancialDecisionService decisionService) {
+                                  FinancialDecisionService decisionService,
+                                  FinancialInsightService insightService) {
         this.merchantRepository = merchantRepository;
         this.merchantService = merchantService;
         this.cashFlowService = cashFlowService;
@@ -62,6 +64,7 @@ public class EvidenceBuilderService {
         this.cashManagementService = cashManagementService;
         this.goalService = goalService;
         this.decisionService = decisionService;
+        this.insightService = insightService;
     }
 
     public FinancialEvidenceSummaryDTO buildEvidenceSummary(Long merchantId, String question) {
@@ -76,7 +79,9 @@ public class EvidenceBuilderService {
         String qLower = question.toLowerCase(Locale.ROOT);
         
         // 1. Detect Intent Category
-        if (qLower.contains("decision") || qLower.contains("decisions") || qLower.contains("recommendations did i act on") || qLower.contains("previous financial decisions")) {
+        if (qLower.contains("pattern") || qLower.contains("insight") || qLower.contains("getting worse") || qLower.contains("financial trend should i watch")) {
+            return buildInsightPatternEvidence(merchantId, question);
+        } else if (qLower.contains("decision") || qLower.contains("decisions") || qLower.contains("recommendations did i act on") || qLower.contains("previous financial decisions")) {
             return buildDecisionHistoryEvidence(merchantId, question);
         } else if (qLower.contains("goal") || qLower.contains("target") || qLower.contains("doing against") || qLower.contains("hit my goal")) {
             return buildFinancialGoalEvidence(merchantId, question);
@@ -495,6 +500,36 @@ public class EvidenceBuilderService {
                 items,
                 assumptions,
                 summary.getDeclinedCount() > summary.getAcceptedCount() ? "ACTION_REQUIRED" : "HEALTHY",
+                conclusion
+        );
+    }
+
+    private FinancialEvidenceSummaryDTO buildInsightPatternEvidence(Long merchantId, String question) {
+        InsightSummaryDTO summary = insightService.getInsightSummary(merchantId);
+        List<FinancialInsightDTO> insights = insightService.getMerchantInsights(merchantId);
+
+        List<EvidenceItemDTO> items = new ArrayList<>();
+        items.add(new EvidenceItemDTO("Total Detected Insights", summary.getTotalInsights(), "Count", "Pattern Insight Engine", "Trend Monitor", "ACTUAL", "Total pattern insights discovered", "HIGH"));
+        items.add(new EvidenceItemDTO("High Severity Insights", summary.getHighSeverityCount(), "Count", "Pattern Insight Engine", "Risk Detector", "ACTUAL", "High priority actionable patterns", "HIGH"));
+        items.add(new EvidenceItemDTO("Active New Insights", summary.getNewCount(), "Count", "Pattern Insight Engine", "Alert Queue", "ACTUAL", "Unacknowledged new insights", "HIGH"));
+        items.add(new EvidenceItemDTO("Pattern Engine Status", summary.getPatternEngineStatus(), "Status", "Pattern Insight Engine", "Engine Diagnostics", "ACTUAL", "Current pattern engine state", "HIGH"));
+
+        List<String> assumptions = new ArrayList<>();
+        for (FinancialInsightDTO in : insights) {
+            items.add(new EvidenceItemDTO("Insight: " + in.getTitle(), in.getSeverity(), "Severity", "Pattern Engine", in.getDetectedPeriod(), in.getCalculationType(), "Metrics: " + in.getEvidenceMetrics() + " | Confidence: " + in.getConfidenceStatus(), "HIGH"));
+            assumptions.add("Pattern Insight '" + in.getTitle() + "' (" + in.getDetectedPeriod() + "): Severity=" + in.getSeverity() + ", CalculationType=" + in.getCalculationType() + ", Assumptions: " + (in.getAssumptions() != null ? in.getAssumptions() : "N/A"));
+        }
+
+        String conclusion = "Financial Pattern Analysis: Discovered " + summary.getTotalInsights() 
+                + " pattern insights (" + summary.getHighSeverityCount() + " high severity, " + summary.getNewCount() 
+                + " new active). Engine status: " + summary.getPatternEngineStatus() + ".";
+
+        return new FinancialEvidenceSummaryDTO(
+                question,
+                "PATTERN_INSIGHTS",
+                items,
+                assumptions,
+                summary.getHighSeverityCount() > 0 ? "ACTION_REQUIRED" : "HEALTHY",
                 conclusion
         );
     }
