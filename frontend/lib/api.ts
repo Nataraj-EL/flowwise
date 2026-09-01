@@ -2657,3 +2657,125 @@ export async function evaluateAdvisoryActionOutcome(
   if (!json.success) throw new Error(json.error || 'Failed to evaluate action step outcome');
   return json.data;
 }
+
+// Sprint 42: Financial Execution Capacity & Adaptive Scheduling Interfaces & API Helpers
+export interface BackendFinancialExecutionScheduleItemDTO {
+  id: number;
+  scheduleId: number;
+  actionPlanId: number;
+  stepId: number;
+  actionType: string;
+  title: string;
+  scheduledPeriod: string;
+  sequenceOrder: number;
+  readinessStatus: 'SCHEDULED' | 'DEFERRED';
+  priorityScore: number;
+  riskProtectionScore: number;
+  urgencyScore: number;
+  dependencyScore: number;
+  effectivenessScore: number;
+  capacityCost: number;
+  deferralScore: number;
+  confidenceStatus: 'HIGH' | 'MODERATE' | 'LIMITED' | 'INSUFFICIENT_DATA';
+  expectedOutcome: string;
+  deferralRisk: string;
+  evidenceMetrics: string;
+}
+
+export interface BackendFinancialExecutionScheduleDTO {
+  id: number;
+  merchantId: number;
+  scheduleKey: string;
+  horizon: '7D' | '30D' | '60D' | '90D';
+  status: 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'ARCHIVED';
+  overallScheduleScore: number;
+  capacityScore: number;
+  riskScore: number;
+  impactScore: number;
+  urgencyScore: number;
+  totalActions: number;
+  scheduledActions: number;
+  deferredActions: number;
+  primaryFocus: string;
+  expectedBenefit: string;
+  riskIfDeferred: string;
+  evidenceMetrics: string;
+  assumptions: string;
+  items: BackendFinancialExecutionScheduleItemDTO[];
+  evaluatedAt: string;
+}
+
+export interface BackendFinancialExecutionScheduleSummaryDTO {
+  merchantId: number;
+  totalSchedulesCount: number;
+  activeSchedule: BackendFinancialExecutionScheduleDTO | null;
+  schedules: BackendFinancialExecutionScheduleDTO[];
+  summaryExplanation: string;
+  advisoryNotice: string;
+}
+
+export async function fetchFinancialExecutionScheduleSummary(
+  merchantId: number | string,
+  horizon?: string
+): Promise<BackendFinancialExecutionScheduleSummaryDTO> {
+  const queryString = horizon ? `?horizon=${horizon}` : '';
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/execution-schedules${queryString}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch execution schedule summary for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialExecutionScheduleSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve execution schedule summary');
+  return json.data;
+}
+
+export async function fetchFinancialExecutionScheduleById(
+  merchantId: number | string,
+  scheduleId: number | string
+): Promise<BackendFinancialExecutionScheduleDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/execution-schedules/${scheduleId}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch execution schedule ID ${scheduleId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialExecutionScheduleDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve execution schedule');
+  return json.data;
+}
+
+export async function evaluateFinancialExecutionSchedule(
+  merchantId: number | string,
+  horizon?: string
+): Promise<BackendFinancialExecutionScheduleDTO> {
+  const queryString = horizon ? `?horizon=${horizon}` : '';
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/execution-schedules/evaluate${queryString}`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to evaluate execution schedule for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialExecutionScheduleDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to evaluate execution schedule');
+  return json.data;
+}
+
+export async function activateFinancialExecutionSchedule(
+  merchantId: number | string,
+  scheduleId: number | string
+): Promise<BackendFinancialExecutionScheduleDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/execution-schedules/${scheduleId}/activate`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to activate schedule ID ${scheduleId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialExecutionScheduleDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to activate execution schedule');
+  return json.data;
+}
+
+export async function archiveFinancialExecutionSchedule(
+  merchantId: number | string,
+  scheduleId: number | string
+): Promise<BackendFinancialExecutionScheduleDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/execution-schedules/${scheduleId}/archive`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to archive schedule ID ${scheduleId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialExecutionScheduleDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to archive execution schedule');
+  return json.data;
+}

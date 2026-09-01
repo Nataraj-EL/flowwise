@@ -151,6 +151,20 @@ public class AdvisoryActionPlanningService {
         return mapToPlanDTO(plan);
     }
 
+    @Transactional(readOnly = true)
+    public List<AdvisoryActionPlanStep> getEligibleCandidateSteps(Long merchantId, String horizon) {
+        String h = horizon != null ? horizon.toUpperCase() : "30D";
+        Optional<AdvisoryActionPlan> planOpt = planRepository.findByMerchantIdAndHorizonAndStatus(merchantId, h, "ACTIVE");
+        if (planOpt.isEmpty()) {
+            List<AdvisoryActionPlan> plans = planRepository.findByMerchantIdAndHorizonOrderByEvaluatedAtDesc(merchantId, h);
+            if (!plans.isEmpty()) planOpt = Optional.of(plans.get(0));
+        }
+        if (planOpt.isPresent()) {
+            return stepRepository.findByPlanIdOrderByStepNumberAsc(planOpt.get().getId());
+        }
+        return Collections.emptyList();
+    }
+
     private AdvisoryActionPlanDTO mapToPlanDTO(AdvisoryActionPlan p) {
         List<AdvisoryActionPlanStepDTO> stepDTOs = p.getSteps().stream()
                 .map(s -> new AdvisoryActionPlanStepDTO(
