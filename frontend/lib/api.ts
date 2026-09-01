@@ -775,6 +775,40 @@ export interface BackendRiskTrajectorySummaryDTO {
   advisoryNotice: string;
 }
 
+export interface BackendFinancialAnomalyDTO {
+  id: number;
+  merchantId: number;
+  anomalyKey: string;
+  anomalyType: string;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  title: string;
+  description: string;
+  baselineValue: number;
+  observedValue: number;
+  deviationPct: number;
+  thresholdPct: number;
+  detectionWindow: string;
+  sampleSize: number;
+  status: 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED';
+  confidenceStatus: 'HIGH' | 'MODERATE' | 'LIMITED' | 'INSUFFICIENT_DATA';
+  evidenceMetrics: string;
+  evaluatedAt: string;
+}
+
+export interface BackendAnomalySummaryDTO {
+  merchantId: number;
+  totalAnomaliesCount: number;
+  criticalCount: number;
+  highCount: number;
+  mediumCount: number;
+  lowCount: number;
+  openCount: number;
+  anomalies: BackendFinancialAnomalyDTO[];
+  recommendedAnomalyActions: BackendFinancialActionDTO[];
+  summaryExplanation: string;
+  advisoryNotice: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -1491,5 +1525,52 @@ export async function evaluateMerchantRiskTrajectory(merchantId: number | string
   if (!res.ok) throw new Error(`Failed to evaluate risk trajectory for merchant ID ${merchantId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendRiskTrajectorySummaryDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to evaluate risk trajectory');
+  return json.data;
+}
+
+export async function fetchMerchantAnomalies(merchantId: number | string): Promise<BackendAnomalySummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/anomalies`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch anomaly summary for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendAnomalySummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve anomaly summary');
+  return json.data;
+}
+
+export async function evaluateMerchantAnomalies(merchantId: number | string): Promise<BackendAnomalySummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/anomalies/evaluate`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to evaluate financial anomalies for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendAnomalySummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to evaluate financial anomalies');
+  return json.data;
+}
+
+export async function acknowledgeAnomaly(
+  merchantId: number | string,
+  anomalyId: number | string
+): Promise<BackendFinancialAnomalyDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/anomalies/${anomalyId}/acknowledge`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to acknowledge anomaly ID ${anomalyId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialAnomalyDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to acknowledge anomaly');
+  return json.data;
+}
+
+export async function resolveAnomaly(
+  merchantId: number | string,
+  anomalyId: number | string
+): Promise<BackendFinancialAnomalyDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/anomalies/${anomalyId}/resolve`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to resolve anomaly ID ${anomalyId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialAnomalyDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to resolve anomaly');
   return json.data;
 }
