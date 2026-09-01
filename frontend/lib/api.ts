@@ -809,6 +809,33 @@ export interface BackendAnomalySummaryDTO {
   advisoryNotice: string;
 }
 
+export interface BackendSignalCorrelationDTO {
+  id: number;
+  merchantId: number;
+  correlationKey: string;
+  primaryTarget: string;
+  likelyRootCause: string;
+  correlationScore: number;
+  confidenceStatus: 'HIGH' | 'MODERATE' | 'LIMITED' | 'INSUFFICIENT_DATA';
+  contributingSignalsCount: number;
+  matchedSignalsJson: string;
+  rankingFormula: string;
+  detectionWindow: string;
+  evidenceMetrics: string;
+  evaluatedAt: string;
+}
+
+export interface BackendCorrelationSummaryDTO {
+  merchantId: number;
+  totalCorrelationsCount: number;
+  highConfidenceCount: number;
+  topLikelyRootCause: string;
+  correlations: BackendSignalCorrelationDTO[];
+  recommendedRootCauseActions: BackendFinancialActionDTO[];
+  summaryExplanation: string;
+  advisoryNotice: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -1572,5 +1599,24 @@ export async function resolveAnomaly(
   if (!res.ok) throw new Error(`Failed to resolve anomaly ID ${anomalyId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendFinancialAnomalyDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to resolve anomaly');
+  return json.data;
+}
+
+export async function fetchMerchantCorrelations(merchantId: number | string): Promise<BackendCorrelationSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/correlations`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch correlation summary for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendCorrelationSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve correlation summary');
+  return json.data;
+}
+
+export async function evaluateMerchantCorrelations(merchantId: number | string): Promise<BackendCorrelationSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/correlations/evaluate`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to evaluate signal correlations for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendCorrelationSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to evaluate signal correlations');
   return json.data;
 }
