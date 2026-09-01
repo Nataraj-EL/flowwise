@@ -836,6 +836,42 @@ export interface BackendCorrelationSummaryDTO {
   advisoryNotice: string;
 }
 
+export interface BackendFinancialInterventionDTO {
+  id: number;
+  merchantId: number;
+  interventionKey: string;
+  interventionType: string;
+  title: string;
+  description: string;
+  priorityScore: number;
+  urgencyScore: number;
+  impactScore: number;
+  confidenceStatus: 'HIGH' | 'MODERATE' | 'LIMITED' | 'INSUFFICIENT_DATA';
+  expectedBenefit: string;
+  riskIfIgnored: string;
+  effortLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+  linkedRiskId?: number;
+  linkedAnomalyId?: number;
+  linkedCorrelationId?: number;
+  linkedGoalId?: number;
+  status: 'OPEN' | 'ACKNOWLEDGED' | 'COMPLETED' | 'DISMISSED';
+  evidenceMetrics: string;
+  assumptions: string;
+  evaluatedAt: string;
+}
+
+export interface BackendInterventionSummaryDTO {
+  merchantId: number;
+  totalInterventionsCount: number;
+  openCount: number;
+  highPriorityCount: number;
+  topFocusArea: string;
+  interventions: BackendFinancialInterventionDTO[];
+  recommendedInterventionActions: BackendFinancialActionDTO[];
+  summaryExplanation: string;
+  advisoryNotice: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -1618,5 +1654,66 @@ export async function evaluateMerchantCorrelations(merchantId: number | string):
   if (!res.ok) throw new Error(`Failed to evaluate signal correlations for merchant ID ${merchantId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendCorrelationSummaryDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to evaluate signal correlations');
+  return json.data;
+}
+
+export async function fetchMerchantInterventions(merchantId: number | string): Promise<BackendInterventionSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/interventions`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch intervention summary for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendInterventionSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve intervention summary');
+  return json.data;
+}
+
+export async function evaluateMerchantInterventions(merchantId: number | string): Promise<BackendInterventionSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/interventions/evaluate`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to evaluate interventions for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendInterventionSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to evaluate interventions');
+  return json.data;
+}
+
+export async function acknowledgeIntervention(
+  merchantId: number | string,
+  interventionId: number | string
+): Promise<BackendFinancialInterventionDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/interventions/${interventionId}/acknowledge`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to acknowledge intervention ID ${interventionId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialInterventionDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to acknowledge intervention');
+  return json.data;
+}
+
+export async function completeIntervention(
+  merchantId: number | string,
+  interventionId: number | string
+): Promise<BackendFinancialInterventionDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/interventions/${interventionId}/complete`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to complete intervention ID ${interventionId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialInterventionDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to complete intervention');
+  return json.data;
+}
+
+export async function dismissIntervention(
+  merchantId: number | string,
+  interventionId: number | string
+): Promise<BackendFinancialInterventionDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/interventions/${interventionId}/dismiss`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to dismiss intervention ID ${interventionId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialInterventionDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to dismiss intervention');
   return json.data;
 }
