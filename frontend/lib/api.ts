@@ -680,6 +680,34 @@ export interface BackendDecisionAnalysisDTO {
   advisoryNotice: string;
 }
 
+export interface BackendOptionPerformanceDTO {
+  id?: number;
+  optionKey: string;
+  totalSampleCount: number;
+  positiveOutcomeCount: number;
+  negativeOutcomeCount: number;
+  successRatePct: number;
+  calibrationMultiplier: number;
+  avgCashImpactVariance: number;
+  accuracyStatus: 'ACCURATE' | 'OVERESTIMATED' | 'UNDERESTIMATED' | 'UNCALIBRATED';
+}
+
+export interface BackendDecisionCalibrationDTO {
+  id?: number;
+  merchantId: number;
+  calibrationKey: string;
+  totalEvaluatedDecisions: number;
+  successfulDecisions: number;
+  overallSuccessRatePct: number;
+  confidenceLevel: 'HIGH' | 'MODERATE' | 'LIMITED' | 'INSUFFICIENT_DATA';
+  dataCompletenessPct: number;
+  summaryInsight: string;
+  evaluatedAt: string;
+  optionPerformances: BackendOptionPerformanceDTO[];
+  recentDecisions: BackendFinancialDecisionDTO[];
+  advisoryNotice: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -1314,5 +1342,21 @@ export async function fetchLatestDecisionAnalysis(merchantId: number | string): 
   if (!res.ok) throw new Error(`Failed to evaluate decision analysis for merchant ID ${merchantId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendDecisionAnalysisDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to evaluate decision analysis');
+  return json.data;
+}
+
+export async function fetchMerchantDecisionCalibration(merchantId: number | string): Promise<BackendDecisionCalibrationDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/decision-calibration`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch decision calibration for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendDecisionCalibrationDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve decision calibration');
+  return json.data;
+}
+
+export async function fetchLatestDecisionPerformance(merchantId: number | string): Promise<BackendDecisionCalibrationDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/decision-calibration/performance`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to evaluate decision performance for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendDecisionCalibrationDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to evaluate decision performance');
   return json.data;
 }
