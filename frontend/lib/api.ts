@@ -225,6 +225,44 @@ export interface BackendEvaluationSummaryDTO {
   caseResults: BackendEvaluationCaseResultDTO[];
 }
 
+export interface BackendDocumentCaptureRequestDTO {
+  documentType: 'RECEIPT' | 'INVOICE' | 'EXPENSE';
+  fileName?: string;
+  fileData?: string;
+  fileType?: string;
+  fileSize?: number;
+  amount?: number;
+  vendorName?: string;
+  category?: string;
+}
+
+export interface BackendDocumentCaptureResponseDTO {
+  id: number;
+  merchantId: number;
+  documentType: 'RECEIPT' | 'INVOICE' | 'EXPENSE';
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  fileUrlOrData?: string;
+  capturedAt: string;
+  status: 'CAPTURED' | 'EXTRACTED' | 'CONFIRMED' | 'DISCARDED';
+  extractedAmount: number;
+  extractedVendor: string;
+  extractedCategory: string;
+  extractedDate: string;
+  extractedTax: number;
+  extractedReference: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BackendDocumentConfirmRequestDTO {
+  amount?: number;
+  vendorName?: string;
+  category?: string;
+  reference?: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -396,5 +434,64 @@ export async function fetchEvaluationSummary(): Promise<BackendEvaluationSummary
   if (!res.ok) throw new Error(`Failed to fetch evaluation summary (HTTP ${res.status})`);
   const json: ApiResponse<BackendEvaluationSummaryDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to retrieve evaluation summary');
+  return json.data;
+}
+
+export async function createDocumentCapture(
+  merchantId: number | string,
+  request: BackendDocumentCaptureRequestDTO
+): Promise<BackendDocumentCaptureResponseDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/office-kit/captures`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to create document capture for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendDocumentCaptureResponseDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to create document capture');
+  return json.data;
+}
+
+export async function fetchMerchantCaptures(merchantId: number | string): Promise<BackendDocumentCaptureResponseDTO[]> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/office-kit/captures`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch document captures for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendDocumentCaptureResponseDTO[]> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve document captures');
+  return json.data;
+}
+
+export async function fetchCaptureDetail(captureId: number | string): Promise<BackendDocumentCaptureResponseDTO> {
+  const res = await fetch(`${API_BASE_URL}/office-kit/captures/${captureId}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch capture detail for ID ${captureId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendDocumentCaptureResponseDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve capture detail');
+  return json.data;
+}
+
+export async function confirmDocumentCapture(
+  captureId: number | string,
+  confirmData?: BackendDocumentConfirmRequestDTO
+): Promise<BackendDocumentCaptureResponseDTO> {
+  const res = await fetch(`${API_BASE_URL}/office-kit/captures/${captureId}/confirm`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(confirmData || {}),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to confirm document capture ID ${captureId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendDocumentCaptureResponseDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to confirm capture');
+  return json.data;
+}
+
+export async function discardDocumentCapture(captureId: number | string): Promise<BackendDocumentCaptureResponseDTO> {
+  const res = await fetch(`${API_BASE_URL}/office-kit/captures/${captureId}/discard`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to discard document capture ID ${captureId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendDocumentCaptureResponseDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to discard capture');
   return json.data;
 }

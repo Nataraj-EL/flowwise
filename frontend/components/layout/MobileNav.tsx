@@ -9,6 +9,7 @@ import {
   TrendingUp,
   LineChart,
   Activity,
+  Camera,
   ArrowRightLeft,
   ShieldAlert,
   Package,
@@ -30,6 +31,7 @@ export const MobileNav: React.FC = () => {
     { name: 'Health & Risk', href: '/dashboard/health', icon: ShieldAlert, disabled: false },
     { name: 'Forecast & Scenarios', href: '/dashboard/forecast', icon: LineChart, disabled: false },
     { name: 'AI Evaluation', href: '/dashboard/evaluation', icon: Activity, disabled: false },
+    { name: 'Office Kit', href: '/dashboard/office-kit', icon: Camera, disabled: false },
     { name: 'Inventory', href: '/dashboard/inventory', icon: Package, disabled: true },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings, disabled: true },
   ];
