@@ -324,7 +324,7 @@ public class FinancialActionService {
         } catch (Exception ignored) {}
     }
 
-    private void createOrUpdateAction(Long merchantId, String key, String title, String severity,
+    public void createOrUpdateAction(Long merchantId, String key, String title, String severity,
                                       String category, String explanation, String evidence, String step) {
         Optional<FinancialAction> existingOpt = actionRepository.findByMerchantIdAndActionKey(merchantId, key);
         if (existingOpt.isEmpty()) {

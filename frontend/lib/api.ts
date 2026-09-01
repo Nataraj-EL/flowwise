@@ -708,6 +708,41 @@ export interface BackendDecisionCalibrationDTO {
   advisoryNotice: string;
 }
 
+export interface BackendRiskAlertDTO {
+  id: number;
+  merchantId: number;
+  riskKey: string;
+  riskType: string;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  title: string;
+  description: string;
+  baselineValue: number;
+  currentValue: number;
+  changePct: number;
+  thresholdValue: number;
+  detectionWindow: string;
+  status: 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED';
+  confidenceStatus: 'HIGH' | 'MODERATE' | 'LIMITED' | 'INSUFFICIENT_DATA';
+  evidenceMetrics: string;
+  evaluatedAt: string;
+}
+
+export interface BackendRiskMonitorSummaryDTO {
+  merchantId: number;
+  compositeRiskHealthScore: number;
+  overallRiskLevel: 'LOW_RISK' | 'MODERATE_RISK' | 'HIGH_RISK' | 'CRITICAL_RISK';
+  totalAlertsCount: number;
+  criticalCount: number;
+  highCount: number;
+  mediumCount: number;
+  lowCount: number;
+  openCount: number;
+  alerts: BackendRiskAlertDTO[];
+  recommendedRiskActions: BackendFinancialActionDTO[];
+  summaryExplanation: string;
+  advisoryNotice: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -1358,5 +1393,52 @@ export async function fetchLatestDecisionPerformance(merchantId: number | string
   if (!res.ok) throw new Error(`Failed to evaluate decision performance for merchant ID ${merchantId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendDecisionCalibrationDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to evaluate decision performance');
+  return json.data;
+}
+
+export async function fetchMerchantRiskMonitor(merchantId: number | string): Promise<BackendRiskMonitorSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/risk-monitor`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch risk monitor summary for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendRiskMonitorSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve risk monitor summary');
+  return json.data;
+}
+
+export async function evaluateMerchantRisks(merchantId: number | string): Promise<BackendRiskMonitorSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/risk-monitor/evaluate`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to evaluate risk monitor for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendRiskMonitorSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to evaluate risk monitor');
+  return json.data;
+}
+
+export async function acknowledgeRiskAlert(
+  merchantId: number | string,
+  alertId: number | string
+): Promise<BackendRiskAlertDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/risk-alerts/${alertId}/acknowledge`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to acknowledge risk alert ID ${alertId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendRiskAlertDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to acknowledge risk alert');
+  return json.data;
+}
+
+export async function resolveRiskAlert(
+  merchantId: number | string,
+  alertId: number | string
+): Promise<BackendRiskAlertDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/risk-alerts/${alertId}/resolve`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to resolve risk alert ID ${alertId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendRiskAlertDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to resolve risk alert');
   return json.data;
 }
