@@ -28,6 +28,7 @@ public class EvidenceBuilderService {
     private final ReconciliationService reconciliationService;
     private final CashManagementService cashManagementService;
     private final FinancialGoalService goalService;
+    private final FinancialDecisionService decisionService;
 
     public EvidenceBuilderService(MerchantRepository merchantRepository,
                                   MerchantService merchantService,
@@ -43,7 +44,8 @@ public class EvidenceBuilderService {
                                   CommandCenterService commandCenterService,
                                   ReconciliationService reconciliationService,
                                   CashManagementService cashManagementService,
-                                  FinancialGoalService goalService) {
+                                  FinancialGoalService goalService,
+                                  FinancialDecisionService decisionService) {
         this.merchantRepository = merchantRepository;
         this.merchantService = merchantService;
         this.cashFlowService = cashFlowService;
@@ -59,6 +61,7 @@ public class EvidenceBuilderService {
         this.reconciliationService = reconciliationService;
         this.cashManagementService = cashManagementService;
         this.goalService = goalService;
+        this.decisionService = decisionService;
     }
 
     public FinancialEvidenceSummaryDTO buildEvidenceSummary(Long merchantId, String question) {
@@ -73,7 +76,9 @@ public class EvidenceBuilderService {
         String qLower = question.toLowerCase(Locale.ROOT);
         
         // 1. Detect Intent Category
-        if (qLower.contains("goal") || qLower.contains("target") || qLower.contains("doing against") || qLower.contains("hit my goal")) {
+        if (qLower.contains("decision") || qLower.contains("decisions") || qLower.contains("recommendations did i act on") || qLower.contains("previous financial decisions")) {
+            return buildDecisionHistoryEvidence(merchantId, question);
+        } else if (qLower.contains("goal") || qLower.contains("target") || qLower.contains("doing against") || qLower.contains("hit my goal")) {
             return buildFinancialGoalEvidence(merchantId, question);
         } else if (qLower.contains("pay my bills") || qLower.contains("can i pay") || qLower.contains("pay first") || qLower.contains("safely spend") || qLower.contains("payment capacity") || qLower.contains("payment plan") || qLower.contains("spend")) {
             return buildCashManagementEvidence(merchantId, question);
@@ -459,6 +464,37 @@ public class EvidenceBuilderService {
                 items,
                 assumptions,
                 atRiskCount > 0 ? "ACTION_REQUIRED" : "HEALTHY",
+                conclusion
+        );
+    }
+
+    private FinancialEvidenceSummaryDTO buildDecisionHistoryEvidence(Long merchantId, String question) {
+        DecisionSummaryDTO summary = decisionService.getDecisionSummary(merchantId);
+        List<FinancialDecisionDTO> decisions = decisionService.getMerchantDecisions(merchantId);
+
+        List<EvidenceItemDTO> items = new ArrayList<>();
+        items.add(new EvidenceItemDTO("Total Recorded Decisions", summary.getTotalDecisions(), "Count", "Decision History Engine", "Audit Memory", "ACTUAL", "Total merchant recorded decisions", "HIGH"));
+        items.add(new EvidenceItemDTO("Accepted Decisions", summary.getAcceptedCount(), "Count", "Decision History Engine", "Approved Log", "ACTUAL", "Decisions accepted by merchant", "HIGH"));
+        items.add(new EvidenceItemDTO("Completed Decisions", summary.getCompletedCount(), "Count", "Decision History Engine", "Execution Memory", "ACTUAL", "Decisions marked completed", "HIGH"));
+        items.add(new EvidenceItemDTO("Declined Decisions", summary.getDeclinedCount(), "Count", "Decision History Engine", "Rejection Log", "ACTUAL", "Recommendations declined", "HIGH"));
+        items.add(new EvidenceItemDTO("Positive Outcome Rate", summary.getSuccessRatePct(), "%", "Decision History Engine", "Outcome Performance", "ACTUAL", "Positive outcomes / Completed decisions", "HIGH"));
+
+        List<String> assumptions = new ArrayList<>();
+        for (FinancialDecisionDTO d : decisions) {
+            items.add(new EvidenceItemDTO("Decision: " + d.getTitle(), d.getDecisionStatus(), "Status", "Decision Memory", d.getDecisionDate(), "ACTUAL", "Outcome: " + d.getOutcomeStatus() + " | Notes: " + (d.getDecisionNotes() != null ? d.getDecisionNotes() : "N/A"), "HIGH"));
+            assumptions.add("Decision '" + d.getTitle() + "' (" + d.getDecisionDate() + "): Status=" + d.getDecisionStatus() + ", Outcome=" + d.getOutcomeStatus());
+        }
+
+        String conclusion = "Decision History Performance: Total recorded decisions: " + summary.getTotalDecisions() 
+                + " (Accepted: " + summary.getAcceptedCount() + ", Completed: " + summary.getCompletedCount() 
+                + ", Positive Outcomes: " + summary.getPositiveOutcomeCount() + "). Success rate: " + summary.getSuccessRatePct() + "%.";
+
+        return new FinancialEvidenceSummaryDTO(
+                question,
+                "DECISION_HISTORY",
+                items,
+                assumptions,
+                summary.getDeclinedCount() > summary.getAcceptedCount() ? "ACTION_REQUIRED" : "HEALTHY",
                 conclusion
         );
     }

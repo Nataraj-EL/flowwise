@@ -522,6 +522,53 @@ export interface BackendFinancialGoalDTO {
   calculationSource: string;
 }
 
+export interface BackendCreateDecisionRequestDTO {
+  actionId?: number;
+  goalId?: number;
+  decisionType: string;
+  title: string;
+  recommendation?: string;
+  decisionNotes?: string;
+  decisionDate?: string;
+}
+
+export interface BackendFinancialDecisionDTO {
+  id: number;
+  merchantId: number;
+  actionId?: number;
+  actionTitle?: string;
+  goalId?: number;
+  goalName?: string;
+  decisionType: string;
+  title: string;
+  recommendation?: string;
+  decisionStatus: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'COMPLETED';
+  decisionNotes?: string;
+  decisionDate: string;
+  outcomeStatus: 'UNKNOWN' | 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL';
+  outcomeNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BackendDecisionOutcomeDTO {
+  outcomeStatus: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL';
+  outcomeNotes?: string;
+}
+
+export interface BackendDecisionSummaryDTO {
+  totalDecisions: number;
+  pendingCount: number;
+  acceptedCount: number;
+  declinedCount: number;
+  completedCount: number;
+  positiveOutcomeCount: number;
+  negativeOutcomeCount: number;
+  neutralOutcomeCount: number;
+  unknownOutcomeCount: number;
+  successRatePct: number;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -964,5 +1011,105 @@ export async function archiveGoal(merchantId: number | string, goalId: number | 
   if (!res.ok) throw new Error(`Failed to archive goal ID ${goalId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendFinancialGoalDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to archive goal');
+  return json.data;
+}
+
+export async function fetchMerchantDecisions(merchantId: number | string): Promise<BackendFinancialDecisionDTO[]> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/decisions`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch decisions for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialDecisionDTO[]> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve decisions');
+  return json.data;
+}
+
+export async function fetchMerchantDecisionSummary(merchantId: number | string): Promise<BackendDecisionSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/decisions/summary`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch decision summary for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendDecisionSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve decision summary');
+  return json.data;
+}
+
+export async function createMerchantDecision(
+  merchantId: number | string,
+  request: BackendCreateDecisionRequestDTO
+): Promise<BackendFinancialDecisionDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/decisions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to create decision for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialDecisionDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to create financial decision');
+  return json.data;
+}
+
+export async function acceptDecision(
+  merchantId: number | string,
+  decisionId: number | string,
+  notes?: string
+): Promise<BackendFinancialDecisionDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/decisions/${decisionId}/accept`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notes }),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to accept decision ID ${decisionId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialDecisionDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to accept decision');
+  return json.data;
+}
+
+export async function declineDecision(
+  merchantId: number | string,
+  decisionId: number | string,
+  notes?: string
+): Promise<BackendFinancialDecisionDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/decisions/${decisionId}/decline`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notes }),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to decline decision ID ${decisionId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialDecisionDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to decline decision');
+  return json.data;
+}
+
+export async function completeDecision(
+  merchantId: number | string,
+  decisionId: number | string,
+  notes?: string
+): Promise<BackendFinancialDecisionDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/decisions/${decisionId}/complete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ notes }),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to complete decision ID ${decisionId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialDecisionDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to complete decision');
+  return json.data;
+}
+
+export async function recordDecisionOutcome(
+  merchantId: number | string,
+  decisionId: number | string,
+  outcome: BackendDecisionOutcomeDTO
+): Promise<BackendFinancialDecisionDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/decisions/${decisionId}/outcome`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(outcome),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to record outcome for decision ID ${decisionId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialDecisionDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to record decision outcome');
   return json.data;
 }
