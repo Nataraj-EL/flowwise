@@ -6,6 +6,7 @@ import { formatINR } from '@/lib/utils';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { BusinessHealthCard } from '@/components/dashboard/BusinessHealthCard';
 import { AskFlowwisePanel } from '@/components/dashboard/AskFlowwisePanel';
+import { WhatChangedCard } from '@/components/dashboard/WhatChangedCard';
 import { CashFlowChart } from '@/components/dashboard/CashFlowChart';
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
 import { Badge } from '@/components/ui/Badge';
@@ -215,6 +216,9 @@ export default function DashboardOverviewPage() {
           ))}
         </div>
       </Card>
+
+      {/* Period-over-Period Temporal Analytics: What Changed? */}
+      <WhatChangedCard />
 
       {/* Core Intelligence Grid: Business Health & Ask Flowwise Panel */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
 
 @Service
@@ -20,6 +19,7 @@ public class FlowwiseIntelligenceService {
     private final CashFlowService cashFlowService;
     private final BusinessHealthService healthService;
     private final TransactionService transactionService;
+    private final TemporalIntelligenceService temporalService;
     private final OllamaClient ollamaClient;
 
     private static final String AI_DISCLAIMER = "Flowwise Intelligence responses are grounded informational business insights. Answers do not constitute formal bank credit approvals or lending decisions.";
@@ -29,12 +29,14 @@ public class FlowwiseIntelligenceService {
                                        CashFlowService cashFlowService,
                                        BusinessHealthService healthService,
                                        TransactionService transactionService,
+                                       TemporalIntelligenceService temporalService,
                                        OllamaClient ollamaClient) {
         this.merchantRepository = merchantRepository;
         this.merchantService = merchantService;
         this.cashFlowService = cashFlowService;
         this.healthService = healthService;
         this.transactionService = transactionService;
+        this.temporalService = temporalService;
         this.ollamaClient = ollamaClient;
     }
 
@@ -47,11 +49,12 @@ public class FlowwiseIntelligenceService {
             question = "How is my cash flow?";
         }
 
-        // 1. Retrieve Financial Evidence Context from Services
+        // 1. Retrieve Financial & Temporal Evidence Context from Services
         MerchantDetailDTO merchantDetail = merchantService.getMerchantDetail(merchantId);
         CashFlowSummaryDTO cashFlow = cashFlowService.getCashFlowSummary(merchantId);
         BusinessHealthDTO health = healthService.calculateBusinessHealth(merchantId);
         TransactionSummaryDTO txSummary = transactionService.getTransactionSummary(merchantId);
+        TemporalSummaryDTO temporal = temporalService.getTemporalSummary(merchantId);
 
         Map<String, Object> evidence = new LinkedHashMap<>();
         evidence.put("businessName", merchantDetail.getMerchant().getBusinessName());
@@ -65,6 +68,14 @@ public class FlowwiseIntelligenceService {
         evidence.put("upcomingPayables", cashFlow.getUpcomingPayablePressure());
         evidence.put("healthScore", health.getOverallScore());
         evidence.put("healthStatus", health.getHealthStatus());
+
+        // Temporal evidence
+        evidence.put("currentMonth", temporal.getCurrentMonth());
+        evidence.put("previousMonth", temporal.getPreviousMonth());
+        evidence.put("inflowChangePct", temporal.getInflowChangePct());
+        evidence.put("outflowChangePct", temporal.getOutflowChangePct());
+        evidence.put("netCashChangePct", temporal.getNetCashChangePct());
+        evidence.put("anomalies", temporal.getAnomalies());
 
         // Top Expense Categories
         List<CategoryTotalDTO> categories = txSummary.getCategoryTotals();
@@ -86,8 +97,8 @@ public class FlowwiseIntelligenceService {
         if (isAiActive) {
             answer = aiResult.get();
         } else {
-            // Grounded Fallback Answer generated directly from Evidence Context
-            answer = buildGroundedFallbackAnswer(question, evidence, categories);
+            // Grounded Fallback Answer generated directly from Temporal Evidence Context
+            answer = buildGroundedFallbackAnswer(question, evidence, temporal);
         }
 
         return new IntelligenceResponseDTO(
@@ -111,9 +122,11 @@ public class FlowwiseIntelligenceService {
         sb.append("Net Cash Flow: ₹").append(evidence.get("netCashFlow")).append("\n");
         sb.append("Monthly Outflow Burn Rate: ₹").append(evidence.get("monthlyBurnRate")).append("\n");
         sb.append("Cash Runway: ").append(evidence.get("cashRunwayMonths")).append(" months\n");
-        sb.append("Recurring Monthly Expenses (Rent, Salaries, Utilities): ₹").append(evidence.get("recurringExpenses")).append("\n");
-        sb.append("Upcoming Payable Pressure: ₹").append(evidence.get("upcomingPayables")).append("\n");
         sb.append("Business Health Score: ").append(evidence.get("healthScore")).append("/100 (Status: ").append(evidence.get("healthStatus")).append(")\n");
+        sb.append("Current Month (").append(evidence.get("currentMonth")).append(") vs Previous Month (").append(evidence.get("previousMonth")).append("):\n");
+        sb.append("  - Inflow MoM Change: ").append(evidence.get("inflowChangePct")).append("%\n");
+        sb.append("  - Outflow MoM Change: ").append(evidence.get("outflowChangePct")).append("%\n");
+        sb.append("  - Net Cash MoM Change: ").append(evidence.get("netCashChangePct")).append("%\n");
         sb.append("Top Expense Category: ").append(evidence.get("topExpenseCategory")).append(" (₹").append(evidence.get("topExpenseAmount")).append(")\n\n");
         sb.append("--- QUESTION ---\n");
         sb.append(question).append("\n\n");
@@ -121,14 +134,39 @@ public class FlowwiseIntelligenceService {
         return sb.toString();
     }
 
-    private String buildGroundedFallbackAnswer(String question, Map<String, Object> evidence, List<CategoryTotalDTO> categories) {
+    private String buildGroundedFallbackAnswer(String question, Map<String, Object> evidence, TemporalSummaryDTO temporal) {
         String qLower = question.toLowerCase(Locale.ROOT);
         BigDecimal availableCash = (BigDecimal) evidence.get("availableCash");
         BigDecimal payables = (BigDecimal) evidence.get("upcomingPayables");
         BigDecimal netCash = (BigDecimal) evidence.get("netCashFlow");
         BigDecimal runway = (BigDecimal) evidence.get("cashRunwayMonths");
-        BigDecimal recurring = (BigDecimal) evidence.get("recurringExpenses");
-        int score = (int) evidence.get("healthScore");
+
+        if (qLower.contains("health") || qLower.contains("score") || qLower.contains("rating")) {
+            int score = (int) evidence.get("healthScore");
+            return "Your Business Health Score is " + score + "/100 (" + evidence.get("healthStatus") + "). "
+                    + "The score reflects a cash runway of " + runway + " months and an average monthly burn rate of ₹" 
+                    + evidence.get("monthlyBurnRate") + ", alongside recurring monthly fixed costs of ₹" + evidence.get("recurringExpenses") + ".";
+        }
+
+        if (qLower.contains("drop") || qLower.contains("lower") || qLower.contains("reduced") || qLower.contains("changed") || qLower.contains("compare")) {
+            return "Compared to " + temporal.getPreviousMonth() + ", monthly outflows changed by " 
+                    + temporal.getOutflowChangePct() + "% (" + temporal.getOutflowDirection() + "), while inflows changed by " 
+                    + temporal.getInflowChangePct() + "%. Net cash movement shifted by " + temporal.getNetCashChangePct() + "%. "
+                    + (temporal.getAnomalies().isEmpty() ? "" : temporal.getAnomalies().get(0));
+        }
+
+        if (qLower.contains("increase") || qLower.contains("highest") || qLower.contains("expense")) {
+            String topCat = (String) evidence.get("topExpenseCategory");
+            BigDecimal topAmt = (BigDecimal) evidence.get("topExpenseAmount");
+            return "The highest expense category is " + topCat + " totaling ₹" + topAmt 
+                    + ". Across recent months, operating expenses shifted by " + temporal.getOutflowChangePct() + "% MoM.";
+        }
+
+        if (qLower.contains("better") || qLower.contains("worse") || qLower.contains("trend")) {
+            String trendStatus = temporal.getNetCashChangePct().compareTo(BigDecimal.ZERO) >= 0 ? "improving" : "contracting";
+            return "Your cash flow trend is currently " + trendStatus + " with a MoM net cash position shift of " 
+                    + temporal.getNetCashChangePct() + "%. You maintain a healthy " + runway + "-month cash runway based on current burn rate.";
+        }
 
         if (qLower.contains("afford") || qLower.contains("inventory") || qLower.contains("80,000") || qLower.contains("80000")) {
             BigDecimal requestAmt = new BigDecimal("80000");
@@ -143,24 +181,7 @@ public class FlowwiseIntelligenceService {
             }
         }
 
-        if (qLower.contains("why") || qLower.contains("health") || qLower.contains("score")) {
-            return "Your Business Health Score is " + score + "/100 (" + evidence.get("healthStatus") + "). "
-                    + "The score reflects a cash runway of " + runway + " months and an average monthly burn rate of ₹" 
-                    + evidence.get("monthlyBurnRate") + ", alongside recurring monthly fixed costs of ₹" + recurring + ".";
-        }
-
-        if (qLower.contains("pressure") || qLower.contains("risk") || qLower.contains("due")) {
-            return "Current cash pressure is driven by ₹" + payables + " in pending payable commitments and ₹" 
-                    + recurring + " in recurring monthly expenses (Rent, Payroll, Utilities), relative to ₹" + availableCash + " in available reserves.";
-        }
-
-        if (qLower.contains("expense") || qLower.contains("where") || qLower.contains("going")) {
-            String topCat = (String) evidence.get("topExpenseCategory");
-            BigDecimal topAmt = (BigDecimal) evidence.get("topExpenseAmount");
-            return "Most of your business expenses are going towards " + topCat + " (totaling ₹" + topAmt + "), followed by recurring monthly payroll and commercial rent disbursements.";
-        }
-
-        // Default Cash Flow Overview
+        // Default Grounded Overview
         return "Your cash flow position is positive with a net cash surplus of ₹" + netCash 
                 + " across the active transaction ledger. Total inflows stand at ₹" + evidence.get("totalInflows") 
                 + " against total outflows of ₹" + evidence.get("totalOutflows") + ", supporting a " + runway + "-month cash runway.";

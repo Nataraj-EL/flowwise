@@ -109,6 +109,36 @@ export interface BackendIntelligenceResponseDTO {
   disclaimer: string;
 }
 
+export interface BackendCategoryMovementDTO {
+  category: string;
+  currentAmount: number;
+  previousAmount: number;
+  changeAmount: number;
+  changePct: number;
+  direction: 'INCREASED' | 'DECREASED' | 'STABLE';
+}
+
+export interface BackendTemporalSummaryDTO {
+  currentMonth: string;
+  previousMonth: string;
+  currentInflow: number;
+  previousInflow: number;
+  inflowChangePct: number;
+  inflowDirection: 'UP' | 'DOWN' | 'FLAT';
+  currentOutflow: number;
+  previousOutflow: number;
+  outflowChangePct: number;
+  outflowDirection: 'UP' | 'DOWN' | 'FLAT';
+  currentNetCash: number;
+  previousNetCash: number;
+  netCashChangePct: number;
+  netCashDirection: 'UP' | 'DOWN' | 'FLAT';
+  categoryMovements: BackendCategoryMovementDTO[];
+  anomalies: string[];
+  insufficientHistory: boolean;
+  historyMonthCount: number;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -205,5 +235,21 @@ export async function askFlowwiseIntelligence(
   if (!res.ok) throw new Error(`Failed to process intelligence query for ID ${merchantId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendIntelligenceResponseDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to generate AI response');
+  return json.data;
+}
+
+export async function fetchMerchantTemporalSummary(merchantId: number | string): Promise<BackendTemporalSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/temporal/summary`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch temporal summary for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendTemporalSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve temporal summary');
+  return json.data;
+}
+
+export async function fetchMerchantCategoryMovements(merchantId: number | string): Promise<BackendCategoryMovementDTO[]> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/temporal/categories`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch category movements for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendCategoryMovementDTO[]> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve category movements');
   return json.data;
 }

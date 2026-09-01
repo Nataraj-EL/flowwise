@@ -15,11 +15,11 @@ export const AskFlowwisePanel: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const presetQuestions = [
+    'What changed compared with last month?',
+    'Why did my cash drop this month?',
+    'Which expense increased the most?',
+    'Is my cash flow getting better or worse?',
     'Can I afford ₹80,000 of inventory this week?',
-    'How is my cash flow?',
-    'Why is my business health score low?',
-    'What is putting pressure on my cash?',
-    'Where are most of my expenses going?',
   ];
 
   const handleAsk = async (qText?: string) => {
