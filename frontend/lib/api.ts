@@ -982,6 +982,54 @@ export interface BackendFinancialPlanSummaryDTO {
   advisoryNotice: string;
 }
 
+export interface BackendFinancialPlanOutcomeDTO {
+  id: number;
+  merchantId: number;
+  planId: number;
+  horizon: string;
+  outcomeStatus: 'SUCCESSFUL' | 'PARTIAL' | 'INEFFECTIVE' | 'INSUFFICIENT_DATA';
+  expectedScore: number;
+  actualScore: number;
+  scoreVariancePct: number;
+  expectedCashImpact: number;
+  actualCashImpact: number;
+  cashVariancePct: number;
+  riskReductionExpected: number;
+  riskReductionActual: number;
+  goalProgressExpected: number;
+  goalProgressActual: number;
+  effectivenessScore: number;
+  confidenceStatus: 'HIGH' | 'MODERATE' | 'LIMITED' | 'INSUFFICIENT_DATA';
+  evidenceMetrics: string;
+  assumptions: string;
+  evaluatedAt: string;
+}
+
+export interface BackendPlanOptimizationDTO {
+  id: number;
+  merchantId: number;
+  planContext: string;
+  sampleCount: number;
+  effectivenessScore: number;
+  optimizationMultiplier: number;
+  confidenceStatus: 'HIGH' | 'MODERATE' | 'LIMITED' | 'INSUFFICIENT_DATA';
+  evaluatedAt: string;
+}
+
+export interface BackendFinancialPlanOutcomeSummaryDTO {
+  merchantId: number;
+  totalEvaluatedOutcomesCount: number;
+  successfulCount: number;
+  partialCount: number;
+  ineffectiveCount: number;
+  insufficientDataCount: number;
+  averageEffectivenessScore: number;
+  outcomes: BackendFinancialPlanOutcomeDTO[];
+  optimizationFactors: BackendPlanOptimizationDTO[];
+  summaryExplanation: string;
+  advisoryNotice: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -1934,5 +1982,43 @@ export async function archiveFinancialPlan(
   if (!res.ok) throw new Error(`Failed to archive plan ID ${planId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendFinancialPlanDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to archive plan');
+  return json.data;
+}
+
+export async function fetchMerchantPlanOutcomeSummary(
+  merchantId: number | string,
+  horizon?: string
+): Promise<BackendFinancialPlanOutcomeSummaryDTO> {
+  const queryString = horizon ? `?horizon=${horizon}` : '';
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/financial-plan-outcomes${queryString}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch plan outcome summary for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialPlanOutcomeSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve plan outcome summary');
+  return json.data;
+}
+
+export async function fetchMerchantPlanOptimizationFactors(
+  merchantId: number | string
+): Promise<BackendPlanOptimizationDTO[]> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/financial-plan-optimization`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch plan optimization factors for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendPlanOptimizationDTO[]> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve plan optimization factors');
+  return json.data;
+}
+
+export async function evaluatePlanOutcome(
+  merchantId: number | string,
+  planId: number | string,
+  window?: string
+): Promise<BackendFinancialPlanOutcomeDTO> {
+  const queryString = window ? `?window=${window}` : '';
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/financial-plans/${planId}/outcome/evaluate${queryString}`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to evaluate plan outcome for plan ID ${planId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialPlanOutcomeDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to evaluate plan outcome');
   return json.data;
 }

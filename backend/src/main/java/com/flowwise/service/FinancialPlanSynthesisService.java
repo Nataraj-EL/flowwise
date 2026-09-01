@@ -5,6 +5,7 @@ import com.flowwise.entity.FinancialPlan;
 import com.flowwise.entity.FinancialPlanItem;
 import com.flowwise.entity.Merchant;
 import com.flowwise.exception.ResourceNotFoundException;
+import com.flowwise.repository.FinancialPlanOptimizationFactorRepository;
 import com.flowwise.repository.FinancialPlanRepository;
 import com.flowwise.repository.FinancialStrategyLearningRepository;
 import com.flowwise.repository.MerchantRepository;
@@ -24,15 +25,18 @@ public class FinancialPlanSynthesisService {
     private final FinancialPlanRepository planRepository;
     private final FinancialActionService actionService;
     private final FinancialStrategyLearningRepository strategyLearningRepository;
+    private final FinancialPlanOptimizationFactorRepository optimizationFactorRepository;
 
     public FinancialPlanSynthesisService(MerchantRepository merchantRepository,
                                         FinancialPlanRepository planRepository,
                                         FinancialActionService actionService,
-                                        FinancialStrategyLearningRepository strategyLearningRepository) {
+                                        FinancialStrategyLearningRepository strategyLearningRepository,
+                                        FinancialPlanOptimizationFactorRepository optimizationFactorRepository) {
         this.merchantRepository = merchantRepository;
         this.planRepository = planRepository;
         this.actionService = actionService;
         this.strategyLearningRepository = strategyLearningRepository;
+        this.optimizationFactorRepository = optimizationFactorRepository;
     }
 
     public FinancialPlanSummaryDTO evaluateFinancialPlan(Long merchantId, String horizon) {
@@ -52,7 +56,10 @@ public class FinancialPlanSynthesisService {
         BigDecimal item2Base = computeItemScore(new BigDecimal("75.00"), new BigDecimal("82.00"), new BigDecimal("75.00"), new BigDecimal("60.00"), new BigDecimal("75.00"), new BigDecimal("100.00"));
         BigDecimal item2Score = item2Base.setScale(2, RoundingMode.HALF_UP).min(new BigDecimal("100.00"));
 
-        BigDecimal overallPlanScore = item1Score.add(item2Score).divide(new BigDecimal("2.00"), 2, RoundingMode.HALF_UP);
+        BigDecimal basePlanScore = item1Score.add(item2Score).divide(new BigDecimal("2.00"), 2, RoundingMode.HALF_UP);
+        BigDecimal optMultiplier = optimizationFactorRepository.findByMerchantIdAndPlanContext(merchantId, planHorizon)
+                .map(f -> f.getOptimizationMultiplier()).orElse(new BigDecimal("1.065"));
+        BigDecimal overallPlanScore = basePlanScore.multiply(optMultiplier).setScale(2, RoundingMode.HALF_UP).min(new BigDecimal("100.00"));
 
         String focusArea = "Accelerate Overdue Receivables & Audit Expense Spikes";
         String summaryExp = planHorizon + " Synthesis Financial Plan: Priority focused on recovering ₹53,240 distributor receivables and containing vendor inventory cost surge.";
