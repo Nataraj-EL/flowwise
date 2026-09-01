@@ -743,6 +743,38 @@ export interface BackendRiskMonitorSummaryDTO {
   advisoryNotice: string;
 }
 
+export interface BackendRiskTrajectoryDTO {
+  id: number;
+  merchantId: number;
+  riskKey: string;
+  riskType: string;
+  trajectoryDirection: 'IMPROVING' | 'STABLE' | 'WORSENING' | 'RESOLVED' | 'INSUFFICIENT_DATA';
+  severityTransition: string;
+  escalationVelocity: number;
+  observedSnapshotsCount: number;
+  baselineValue: number;
+  currentValue: number;
+  scoreDelta: number;
+  resolutionTimeHours: number;
+  recurrenceCount: number;
+  evaluatedAt: string;
+}
+
+export interface BackendRiskTrajectorySummaryDTO {
+  merchantId: number;
+  compositeTrajectoryStatus: 'IMPROVING' | 'STABLE' | 'WORSENING' | 'INSUFFICIENT_DATA';
+  totalTrackedRisks: number;
+  worseningCount: number;
+  stableCount: number;
+  improvingCount: number;
+  resolvedCount: number;
+  avgResolutionTimeHours: number;
+  trajectories: BackendRiskTrajectoryDTO[];
+  escalationActions: BackendFinancialActionDTO[];
+  summaryExplanation: string;
+  advisoryNotice: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -1440,5 +1472,24 @@ export async function resolveRiskAlert(
   if (!res.ok) throw new Error(`Failed to resolve risk alert ID ${alertId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendRiskAlertDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to resolve risk alert');
+  return json.data;
+}
+
+export async function fetchMerchantRiskHistory(merchantId: number | string): Promise<BackendRiskTrajectorySummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/risk-history`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch risk trajectory history for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendRiskTrajectorySummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve risk trajectory history');
+  return json.data;
+}
+
+export async function evaluateMerchantRiskTrajectory(merchantId: number | string): Promise<BackendRiskTrajectorySummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/risk-history/evaluate`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to evaluate risk trajectory for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendRiskTrajectorySummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to evaluate risk trajectory');
   return json.data;
 }

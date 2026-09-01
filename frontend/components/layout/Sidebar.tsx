@@ -52,6 +52,7 @@ export const Sidebar: React.FC = () => {
     { name: 'Decision Intelligence', href: '/dashboard/decision-intelligence', icon: Scale, disabled: false },
     { name: 'Decision Performance', href: '/dashboard/decision-performance', icon: BarChart3, disabled: false },
     { name: 'Risk Monitor', href: '/dashboard/risk-monitor', icon: ShieldAlert, disabled: false },
+    { name: 'Risk History', href: '/dashboard/risk-history', icon: Activity, disabled: false },
     { name: 'Pattern Insights', href: '/dashboard/insights', icon: Sparkles, disabled: false },
     { name: 'Scenarios & Forecast', href: '/dashboard/scenarios', icon: LineChart, disabled: false },
     { name: 'Reconciliation', href: '/dashboard/reconciliation', icon: CheckSquare, disabled: false },
