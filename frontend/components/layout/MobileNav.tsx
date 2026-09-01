@@ -29,6 +29,7 @@ export const MobileNav: React.FC = () => {
   const pathname = usePathname();
 
   const navItems = [
+    { name: 'Command Center', href: '/dashboard/command-center', icon: LayoutDashboard },
     { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Transactions', href: '/dashboard/transactions', icon: ArrowRightLeft, disabled: false },
     { name: 'Cash Flow', href: '/dashboard/cashflow', icon: TrendingUp, disabled: false },

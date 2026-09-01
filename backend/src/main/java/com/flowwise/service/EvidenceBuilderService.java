@@ -24,6 +24,7 @@ public class EvidenceBuilderService {
     private final ReceivablesService receivablesService;
     private final PayablesService payablesService;
     private final WorkingCapitalService workingCapitalService;
+    private final CommandCenterService commandCenterService;
 
     public EvidenceBuilderService(MerchantRepository merchantRepository,
                                   MerchantService merchantService,
@@ -35,7 +36,8 @@ public class EvidenceBuilderService {
                                   FinancialActionService actionService,
                                   ReceivablesService receivablesService,
                                   PayablesService payablesService,
-                                  WorkingCapitalService workingCapitalService) {
+                                  WorkingCapitalService workingCapitalService,
+                                  CommandCenterService commandCenterService) {
         this.merchantRepository = merchantRepository;
         this.merchantService = merchantService;
         this.cashFlowService = cashFlowService;
@@ -47,6 +49,7 @@ public class EvidenceBuilderService {
         this.receivablesService = receivablesService;
         this.payablesService = payablesService;
         this.workingCapitalService = workingCapitalService;
+        this.commandCenterService = commandCenterService;
     }
 
     public FinancialEvidenceSummaryDTO buildEvidenceSummary(Long merchantId, String question) {
@@ -61,7 +64,9 @@ public class EvidenceBuilderService {
         String qLower = question.toLowerCase(Locale.ROOT);
         
         // 1. Detect Intent Category
-        if (qLower.contains("working capital") || qLower.contains("obligation") || qLower.contains("stuck") || qLower.contains("coverage") || qLower.contains("gap") || qLower.contains("biggest cash pressure")) {
+        if (qLower.contains("today") || qLower.contains("briefing") || qLower.contains("attention") || qLower.contains("command center") || qLower.contains("executive")) {
+            return buildCommandCenterEvidence(merchantId, question);
+        } else if (qLower.contains("working capital") || qLower.contains("obligation") || qLower.contains("stuck") || qLower.contains("coverage") || qLower.contains("gap") || qLower.contains("biggest cash pressure")) {
             return buildWorkingCapitalEvidence(merchantId, question);
         } else if (qLower.contains("payable") || qLower.contains("bill") || qLower.contains("vendor") || qLower.contains("owe") || qLower.contains("rent") || qLower.contains("utility")) {
             return buildPayablesEvidence(merchantId, question);
@@ -309,6 +314,41 @@ public class EvidenceBuilderService {
                 assumptions,
                 "HIGH_RISK".equalsIgnoreCase(wc.getCashConversionRiskStatus()) ? "ACTION_REQUIRED" : "HEALTHY",
                 wc.getSummaryExplanation()
+        );
+    }
+
+    private FinancialEvidenceSummaryDTO buildCommandCenterEvidence(Long merchantId, String question) {
+        CommandCenterSnapshotDTO snapshot = commandCenterService.getCommandCenterSnapshot(merchantId);
+
+        List<EvidenceItemDTO> items = new ArrayList<>();
+        items.add(new EvidenceItemDTO("Overall Financial Status", snapshot.getOverallFinancialStatus(), "Status", "Business Health Engine", "Executive Synthesis", "ACTUAL", "Synthesized status across all 8 engines", "HIGH"));
+        items.add(new EvidenceItemDTO("Available Cash Reserves", snapshot.getAvailableCash(), "INR", "Cash Flow Engine", "Business Accounts", "ACTUAL", "Liquid balance across connected accounts", "HIGH"));
+        items.add(new EvidenceItemDTO("Net Cash Flow", snapshot.getNetCashFlow(), "INR", "Cash Flow Engine", "Statement Analysis", "ACTUAL", "Net cash flow for current period", "HIGH"));
+        items.add(new EvidenceItemDTO("Working Capital Coverage", snapshot.getWorkingCapitalCoverage(), "Ratio (x)", "Working Capital Engine", "Liquidity Ratio", "ACTUAL", "Ratio of liquid assets to payables", "HIGH"));
+        items.add(new EvidenceItemDTO("Overdue Receivables Pressure", snapshot.getReceivablesPressure(), "INR", "Receivables Engine", "Ledger Aging", "ACTUAL", "Overdue customer invoices", "HIGH"));
+        items.add(new EvidenceItemDTO("Near-Term Payables Pressure", snapshot.getPayablesPressure(), "INR", "Payables Engine", "Due-Date Ledger", "ACTUAL", "Upcoming 7-day payment pressure", "HIGH"));
+        items.add(new EvidenceItemDTO("Forecast Risk Outlook", snapshot.getForecastRisk(), "Status", "Forecasting Engine", "30-90 Day Projection", "ESTIMATE", "Projected cash flow and runway risk", "HIGH"));
+
+        List<String> assumptions = new ArrayList<>();
+        assumptions.add("Key Positive Signal: " + snapshot.getKeyPositiveSignal());
+        assumptions.add("Key Risk Signal: " + snapshot.getKeyRiskSignal());
+        assumptions.add("What Changed: " + snapshot.getWhatChangedSummary());
+        if (!snapshot.getTop3Priorities().isEmpty()) {
+            assumptions.add("Top Priority Action: " + snapshot.getTop3Priorities().get(0).getTitle());
+        }
+
+        String conclusion = "Financial Command Center Briefing: Status is " + snapshot.getOverallFinancialStatus() 
+                + " (Score: " + snapshot.getOverallHealthScore() + "/100). Available cash: ₹" + snapshot.getAvailableCash() 
+                + ", Net Cash Flow: ₹" + snapshot.getNetCashFlow() + ", Working Capital Coverage: " + snapshot.getWorkingCapitalCoverage() 
+                + "x. Top priority: " + (!snapshot.getTop3Priorities().isEmpty() ? snapshot.getTop3Priorities().get(0).getTitle() : "Maintain operational balance") + ".";
+
+        return new FinancialEvidenceSummaryDTO(
+                question,
+                "COMMAND_CENTER",
+                items,
+                assumptions,
+                "AT_RISK".equalsIgnoreCase(snapshot.getOverallFinancialStatus()) ? "ACTION_REQUIRED" : "HEALTHY",
+                conclusion
         );
     }
 }

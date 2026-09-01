@@ -380,6 +380,22 @@ export interface BackendWorkingCapitalSummaryDTO {
   summaryExplanation: string;
 }
 
+export interface BackendCommandCenterSnapshotDTO {
+  overallFinancialStatus: 'HEALTHY' | 'WATCH' | 'AT_RISK';
+  overallHealthScore: number;
+  availableCash: number;
+  netCashFlow: number;
+  workingCapitalCoverage: number;
+  receivablesPressure: number;
+  payablesPressure: number;
+  forecastRisk: 'FEASIBLE' | 'CAUTION' | 'HIGH_RISK';
+  top3Priorities: BackendFinancialActionDTO[];
+  keyPositiveSignal: string;
+  keyRiskSignal: string;
+  whatChangedSummary: string;
+  generatedAt: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -691,5 +707,13 @@ export async function fetchMerchantWorkingCapital(merchantId: number | string): 
   if (!res.ok) throw new Error(`Failed to fetch working capital for merchant ID ${merchantId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendWorkingCapitalSummaryDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to retrieve working capital summary');
+  return json.data;
+}
+
+export async function fetchMerchantCommandCenter(merchantId: number | string): Promise<BackendCommandCenterSnapshotDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/command-center`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch command center snapshot for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendCommandCenterSnapshotDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve command center snapshot');
   return json.data;
 }
