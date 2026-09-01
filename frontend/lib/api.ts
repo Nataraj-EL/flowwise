@@ -29,6 +29,35 @@ export interface BackendMerchantDetailDTO {
   connectedAccountsCount: number;
 }
 
+export interface BackendAccountDetailDTO {
+  accountId: number;
+  institutionName: string;
+  accountType: string;
+  maskedAccountRef: string;
+  currentBalance: number;
+  currency: string;
+  status: string;
+  cashContributionPct: number;
+  totalCredits: number;
+  totalDebits: number;
+  netCashFlow: number;
+  transactionCount: number;
+}
+
+export interface BackendMerchantWorkspaceDTO {
+  merchantId: number;
+  businessName: string;
+  displayName: string;
+  businessType: string;
+  industry: string;
+  demoGstin: string;
+  totalAvailableCash: number;
+  connectedAccountsCount: number;
+  accounts: BackendAccountDetailDTO[];
+  consolidatedNetCashFlow: number;
+  consolidatedTransactionCount: number;
+}
+
 export interface BackendTransactionDTO {
   id: number;
   merchantId: number;
@@ -715,5 +744,24 @@ export async function fetchMerchantCommandCenter(merchantId: number | string): P
   if (!res.ok) throw new Error(`Failed to fetch command center snapshot for merchant ID ${merchantId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendCommandCenterSnapshotDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to retrieve command center snapshot');
+  return json.data;
+}
+
+export async function fetchMerchantWorkspace(merchantId: number | string): Promise<BackendMerchantWorkspaceDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/workspace`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch workspace for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendMerchantWorkspaceDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve merchant workspace');
+  return json.data;
+}
+
+export async function fetchAccountSummary(
+  merchantId: number | string,
+  accountId: number | string
+): Promise<BackendAccountDetailDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/accounts/${accountId}/summary`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch summary for account ID ${accountId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendAccountDetailDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve account summary');
   return json.data;
 }

@@ -11,6 +11,7 @@ import {
   FileText,
   CreditCard,
   Briefcase,
+  Building2,
   Zap,
   Activity,
   Camera,
@@ -20,7 +21,6 @@ import {
   Settings,
   Menu,
   X,
-  Building2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -30,6 +30,7 @@ export const MobileNav: React.FC = () => {
 
   const navItems = [
     { name: 'Command Center', href: '/dashboard/command-center', icon: LayoutDashboard },
+    { name: 'Workspace', href: '/dashboard/workspace', icon: Building2 },
     { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Transactions', href: '/dashboard/transactions', icon: ArrowRightLeft, disabled: false },
     { name: 'Cash Flow', href: '/dashboard/cashflow', icon: TrendingUp, disabled: false },
