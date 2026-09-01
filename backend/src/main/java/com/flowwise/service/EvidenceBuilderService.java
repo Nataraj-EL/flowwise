@@ -20,6 +20,7 @@ public class EvidenceBuilderService {
     private final TransactionService transactionService;
     private final TemporalIntelligenceService temporalService;
     private final ForecastingService forecastingService;
+    private final FinancialActionService actionService;
 
     public EvidenceBuilderService(MerchantRepository merchantRepository,
                                   MerchantService merchantService,
@@ -27,7 +28,8 @@ public class EvidenceBuilderService {
                                   BusinessHealthService healthService,
                                   TransactionService transactionService,
                                   TemporalIntelligenceService temporalService,
-                                  ForecastingService forecastingService) {
+                                  ForecastingService forecastingService,
+                                  FinancialActionService actionService) {
         this.merchantRepository = merchantRepository;
         this.merchantService = merchantService;
         this.cashFlowService = cashFlowService;
@@ -35,6 +37,7 @@ public class EvidenceBuilderService {
         this.transactionService = transactionService;
         this.temporalService = temporalService;
         this.forecastingService = forecastingService;
+        this.actionService = actionService;
     }
 
     public FinancialEvidenceSummaryDTO buildEvidenceSummary(Long merchantId, String question) {
@@ -51,6 +54,8 @@ public class EvidenceBuilderService {
         // 1. Detect Intent Category
         if (qLower.contains("afford") || qLower.contains("inventory") || qLower.contains("80,000") || qLower.contains("80000") || qLower.contains("buy") || qLower.contains("purchase")) {
             return buildAffordabilityEvidence(merchantId, question);
+        } else if (qLower.contains("focus") || qLower.contains("risk") || qLower.contains("do") || qLower.contains("action") || qLower.contains("recommend") || qLower.contains("priority") || qLower.contains("this week")) {
+            return buildActionCenterEvidence(merchantId, question);
         } else if (qLower.contains("health") || qLower.contains("score") || qLower.contains("rating")) {
             return buildHealthEvidence(merchantId, question);
         } else if (qLower.contains("changed") || qLower.contains("compare") || qLower.contains("drop") || qLower.contains("shift") || qLower.contains("month")) {
@@ -177,6 +182,39 @@ public class EvidenceBuilderService {
                 Arrays.asList("Based on active transaction ledger records.", "Calculated using Java BigDecimal arithmetic."),
                 "HEALTHY",
                 "Net cash surplus stands at ₹" + cashFlow.getNetCashFlow() + " supporting a " + cashFlow.getCashRunwayMonths() + "-month cash runway."
+        );
+    }
+
+    private FinancialEvidenceSummaryDTO buildActionCenterEvidence(Long merchantId, String question) {
+        ActionSummaryDTO actionSummary = actionService.getMerchantActions(merchantId);
+        CashFlowSummaryDTO cashFlow = cashFlowService.getCashFlowSummary(merchantId);
+
+        List<EvidenceItemDTO> items = new ArrayList<>();
+        items.add(new EvidenceItemDTO("Total Recommended Actions", actionSummary.getTotalActions(), "Actions", "Financial Action Engine", "Current Ledger", "ACTUAL", "Prioritized advisory actions generated from financial signals", "HIGH"));
+        items.add(new EvidenceItemDTO("High Priority Risks", actionSummary.getHighPriorityCount(), "Alerts", "Financial Action Engine", "Current Ledger", "ACTUAL", "Critical short-term payables and runway risks", "HIGH"));
+        items.add(new EvidenceItemDTO("Medium Priority Warnings", actionSummary.getMediumPriorityCount(), "Warnings", "Financial Action Engine", "Current Ledger", "ACTUAL", "Expense spikes and receivables pressure", "HIGH"));
+        items.add(new EvidenceItemDTO("Cash Runway", cashFlow.getCashRunwayMonths(), "Months", "Cash Flow Engine", "Monthly Average", "ACTUAL", "Available cash divided by burn rate", "HIGH"));
+
+        List<String> assumptions = new ArrayList<>();
+        for (FinancialActionDTO action : actionSummary.getActions()) {
+            if ("OPEN".equalsIgnoreCase(action.getStatus())) {
+                assumptions.add("[" + action.getSeverity() + "] " + action.getTitle() + ": " + action.getRecommendedStep());
+            }
+        }
+
+        String topRecommendation = actionSummary.getActions().stream()
+                .filter(a -> "OPEN".equalsIgnoreCase(a.getStatus()))
+                .findFirst()
+                .map(a -> "[" + a.getSeverity() + "] " + a.getTitle() + " — " + a.getRecommendedStep())
+                .orElse("All financial signals are healthy. Maintain current expense controls and monitor incoming settlements.");
+
+        return new FinancialEvidenceSummaryDTO(
+                question,
+                "ACTION_CENTER",
+                items,
+                assumptions,
+                actionSummary.getHighPriorityCount() > 0 ? "ACTION_REQUIRED" : "HEALTHY",
+                "Primary Focus Recommendation: " + topRecommendation
         );
     }
 }

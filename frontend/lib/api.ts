@@ -278,6 +278,30 @@ export interface BackendDocumentIngestResponseDTO {
   alreadyIngested: boolean;
 }
 
+export interface BackendFinancialActionDTO {
+  id: number;
+  merchantId: number;
+  actionKey: string;
+  title: string;
+  severity: 'HIGH' | 'MEDIUM' | 'LOW';
+  category: string;
+  explanation: string;
+  supportingEvidence: string;
+  recommendedStep: string;
+  status: 'OPEN' | 'DISMISSED' | 'RESOLVED';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BackendActionSummaryDTO {
+  totalActions: number;
+  highPriorityCount: number;
+  mediumPriorityCount: number;
+  lowPriorityCount: number;
+  openCount: number;
+  actions: BackendFinancialActionDTO[];
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -519,5 +543,35 @@ export async function ingestDocumentCapture(captureId: number | string): Promise
   if (!res.ok) throw new Error(`Failed to ingest document capture ID ${captureId} into financial ledger (HTTP ${res.status})`);
   const json: ApiResponse<BackendDocumentIngestResponseDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to ingest capture into ledger');
+  return json.data;
+}
+
+export async function fetchMerchantActions(merchantId: number | string): Promise<BackendActionSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/actions`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch merchant actions for ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendActionSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve merchant actions');
+  return json.data;
+}
+
+export async function dismissAction(actionId: number | string): Promise<BackendFinancialActionDTO> {
+  const res = await fetch(`${API_BASE_URL}/actions/${actionId}/dismiss`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to dismiss action ID ${actionId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialActionDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to dismiss action');
+  return json.data;
+}
+
+export async function resolveAction(actionId: number | string): Promise<BackendFinancialActionDTO> {
+  const res = await fetch(`${API_BASE_URL}/actions/${actionId}/resolve`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to resolve action ID ${actionId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialActionDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to resolve action');
   return json.data;
 }
