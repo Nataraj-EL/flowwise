@@ -1,54 +1,37 @@
 import React from 'react';
-import { Layers, ShieldCheck, Cpu, BarChart3 } from 'lucide-react';
+import { Server, Database, Code2 } from 'lucide-react';
 
 export const TrustStrip: React.FC = () => {
-  const capabilities = [
-    {
-      icon: Layers,
-      title: 'Unified Multi-Bank Aggregation',
-      description: 'Consolidate multiple merchant current & reserve accounts into one live view.',
-    },
-    {
-      icon: ShieldCheck,
-      title: 'Automated Reconciliation',
-      description: 'Match bank settlements against GST invoices and vendor payables automatically.',
-    },
-    {
-      icon: Cpu,
-      title: 'Predictive Cash Velocity',
-      description: 'Model future cash positions based on historical billing patterns and due dates.',
-    },
-    {
-      icon: BarChart3,
-      title: 'Real-Time Health Index',
-      description: 'Instant liquidity, solvency, and burn rate diagnostics tuned for retail.',
-    },
+  const stack = [
+    { name: 'Spring Boot + Java 17', icon: Server },
+    { name: 'PostgreSQL', icon: Database },
+    { name: 'Next.js + TypeScript', icon: Code2 },
   ];
 
   return (
-    <section className="bg-[#08090C] border-y border-white/10 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {capabilities.map((cap, idx) => {
-            const Icon = cap.icon;
+    <section className="py-12 bg-[#060709] border-t border-slate-800/80">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 text-center">
+        <h3 className="text-sm font-mono uppercase tracking-widest text-slate-400 font-semibold">
+          Built for serious financial workflows.
+        </h3>
+
+        {/* 3 Small Architecture Items */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-12 pt-1">
+          {stack.map((item, i) => {
+            const Icon = item.icon;
             return (
-              <div
-                key={idx}
-                className="p-5 bg-[#0E1116] border border-white/5 space-y-2 hover:border-[#00F0FF]/40 transition-colors font-mono"
-              >
-                <div className="w-8 h-8 bg-[#00F0FF]/10 border border-[#00F0FF]/30 flex items-center justify-center text-[#00F0FF]">
-                  <Icon className="w-4 h-4" />
-                </div>
-                <h4 className="text-sm font-bold text-white uppercase tracking-wider">
-                  {cap.title}
-                </h4>
-                <p className="text-xs text-slate-400 font-sans leading-relaxed">
-                  {cap.description}
-                </p>
+              <div key={i} className="flex items-center gap-2.5 text-xs font-mono text-slate-300">
+                <Icon className="w-4 h-4 text-cyan-400" />
+                <span>{item.name}</span>
               </div>
             );
           })}
         </div>
+
+        {/* Short Line */}
+        <p className="text-[11px] text-slate-500 font-mono pt-2">
+          Synthetic demo environment. Financial data shown is illustrative only.
+        </p>
       </div>
     </section>
   );

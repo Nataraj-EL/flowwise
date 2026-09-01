@@ -1,61 +1,77 @@
 import React from 'react';
 import Link from 'next/link';
-import { SectionHeading } from '@/components/ui/SectionHeading';
-import { Button } from '@/components/ui/Button';
-import { MetricCard } from '@/components/ui/MetricCard';
-import { Badge } from '@/components/ui/Badge';
-import { DEMO_METRICS } from '@/lib/mock-data';
-import { ArrowRight, LayoutDashboard, ShieldCheck } from 'lucide-react';
+import { ArrowRight, LayoutDashboard, ShieldCheck, Zap, LineChart } from 'lucide-react';
 
 export const DashboardPreview: React.FC = () => {
   return (
-    <section className="py-20 bg-[#08090C] border-b border-white/10 cyber-grid">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        <SectionHeading
-          tag="FINANCIAL CONSOLE PREVIEW"
-          title="HIGH-DENSITY MERCHANT INTERFACE"
-          subtitle="Built like a high-performance trading platform. Essential financial figures are upfront, bold, and readable at a glance."
-          align="center"
-        />
+    <section id="product" className="py-20 bg-[#060709]">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10 text-center">
+        <div className="space-y-3">
+          <h2 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+            Your financial command center.
+          </h2>
+          <p className="text-slate-400 text-sm sm:text-base max-w-lg mx-auto">
+            One workspace for the financial signals that matter most.
+          </p>
+        </div>
 
-        {/* Mock Console Container */}
-        <div className="bg-[#0E1116] border border-white/20 shadow-2xl p-4 sm:p-6 space-y-6">
-          <div className="flex items-center justify-between border-b border-white/10 pb-4 font-mono text-xs">
+        {/* Dashboard Console Graphic Visual */}
+        <div className="bg-[#121622] border border-slate-800 rounded-2xl p-6 md:p-8 shadow-2xl space-y-6 text-left relative overflow-hidden">
+          {/* Top Console Navigation Bar Mock */}
+          <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
             <div className="flex items-center gap-3">
-              <div className="w-3 h-3 bg-rose-500 rounded-full"></div>
-              <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
-              <div className="w-3 h-3 bg-[#00E599] rounded-full"></div>
-              <span className="text-white font-bold ml-2 hidden sm:inline">
-                APEX RETAIL SOLUTIONS [DEMO CONSOLE]
+              <div className="p-2 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-cyan-400">
+                <LayoutDashboard className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white font-mono">FLOWWISE CONSOLE</h4>
+                <span className="text-[11px] text-slate-400">Merchant Account ID #1 • Demo Environment</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-mono">
+                ● System Active
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="demo">SYNTHETIC ENVIRONMENT</Badge>
-              <span className="text-[#00F0FF] font-bold">LIVE FEED</span>
+          </div>
+
+          {/* Console Cards Preview Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-[#0A0D14] border border-slate-800 p-5 rounded-xl space-y-3">
+              <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
+                <span>Liquidity Buffer</span>
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div className="text-2xl font-extrabold text-emerald-400">₹1,42,850</div>
+              <p className="text-xs text-slate-400">14 days runway protection buffer verified.</p>
+            </div>
+
+            <div className="bg-[#0A0D14] border border-slate-800 p-5 rounded-xl space-y-3">
+              <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
+                <span>Working Capital Score</span>
+                <Zap className="w-4 h-4 text-purple-400" />
+              </div>
+              <div className="text-2xl font-extrabold text-purple-400">93.8 / 100</div>
+              <p className="text-xs text-slate-400">Optimal payable vs receivable alignment.</p>
+            </div>
+
+            <div className="bg-[#0A0D14] border border-slate-800 p-5 rounded-xl space-y-3">
+              <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
+                <span>Forecasted Runway</span>
+                <LineChart className="w-4 h-4 text-cyan-400" />
+              </div>
+              <div className="text-2xl font-extrabold text-cyan-400">4.8 Months</div>
+              <p className="text-xs text-slate-400">Zero deficit projected over 90D horizon.</p>
             </div>
           </div>
 
-          {/* 6 Metric Cards Preview */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {DEMO_METRICS.map((m, i) => (
-              <MetricCard
-                key={i}
-                title={m.title}
-                formattedValue={m.formattedValue}
-                changeMoM={m.changeMoM}
-                trend={m.trend}
-                subtext={m.subtext}
-              />
-            ))}
-          </div>
-
-          {/* Console CTA */}
-          <div className="pt-4 text-center border-t border-white/10">
-            <Link href="/dashboard">
-              <Button variant="cyan" size="lg" className="gap-2">
-                Open Full Interactive Console
-                <ArrowRight className="w-4 h-4" />
-              </Button>
+          {/* CTA Link inside visual */}
+          <div className="pt-4 flex items-center justify-between border-t border-slate-800/80 text-xs">
+            <span className="text-slate-400 font-mono">Interactive Financial Intelligence Console</span>
+            <Link href="/dashboard" className="text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1.5">
+              Open Dashboard
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>
