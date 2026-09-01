@@ -100,6 +100,15 @@ export interface BackendBusinessHealthDTO {
   summaryExplanation: string;
 }
 
+export interface BackendIntelligenceResponseDTO {
+  question: string;
+  answer: string;
+  evidenceSummary: Record<string, any>;
+  localAiActive: boolean;
+  modelUsed: string;
+  disclaimer: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -180,5 +189,21 @@ export async function fetchMerchantHealth(merchantId: number | string): Promise<
   if (!res.ok) throw new Error(`Failed to fetch business health for merchant ID ${merchantId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendBusinessHealthDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to retrieve business health');
+  return json.data;
+}
+
+export async function askFlowwiseIntelligence(
+  merchantId: number | string,
+  question: string
+): Promise<BackendIntelligenceResponseDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/intelligence/query`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question }),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to process intelligence query for ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendIntelligenceResponseDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to generate AI response');
   return json.data;
 }
