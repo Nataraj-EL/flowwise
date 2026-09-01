@@ -598,6 +598,51 @@ export interface BackendInsightSummaryDTO {
   patternEngineStatus: string;
 }
 
+export interface BackendScenarioSimulationRequestDTO {
+  scenarioType?: 'BASELINE' | 'CAUTIOUS' | 'STRESS' | 'CUSTOM';
+  name?: string;
+  revenueModifierPct?: number;
+  expenseModifierPct?: number;
+  receivableCollectionPct?: number;
+  payableAccelerationPct?: number;
+  saveScenario?: boolean;
+}
+
+export interface BackendFinancialScenarioDTO {
+  id?: number;
+  merchantId: number;
+  scenarioType: string;
+  name: string;
+  description: string;
+  revenueModifierPct: number;
+  expenseModifierPct: number;
+  receivableCollectionPct: number;
+  payableAccelerationPct: number;
+  projected7dCash: number;
+  projected30dCash: number;
+  projected60dCash: number;
+  projected90dCash: number;
+  runwayMonths: number;
+  riskStatus: 'FEASIBLE' | 'CAUTION' | 'HIGH_RISK';
+  goalAchievable: boolean;
+  goalStatusDetail?: string;
+  assumptions: string;
+  estimate: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BackendScenarioComparisonDTO {
+  currentAvailableCash: number;
+  currentMonthlyBurnRate: number;
+  baselineScenario: BackendFinancialScenarioDTO;
+  cautiousScenario: BackendFinancialScenarioDTO;
+  stressScenario: BackendFinancialScenarioDTO;
+  allScenarios: BackendFinancialScenarioDTO[];
+  primaryRiskAlert: string;
+  summaryAdvice: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -1184,5 +1229,37 @@ export async function dismissInsight(
   if (!res.ok) throw new Error(`Failed to dismiss insight ID ${insightId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendFinancialInsightDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to dismiss insight');
+  return json.data;
+}
+
+export async function fetchMerchantScenarios(merchantId: number | string): Promise<BackendFinancialScenarioDTO[]> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/scenarios`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch scenarios for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialScenarioDTO[]> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve scenarios');
+  return json.data;
+}
+
+export async function fetchMerchantScenarioComparison(merchantId: number | string): Promise<BackendScenarioComparisonDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/scenarios/comparison`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch scenario comparison for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendScenarioComparisonDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve scenario comparison');
+  return json.data;
+}
+
+export async function simulateScenario(
+  merchantId: number | string,
+  request: BackendScenarioSimulationRequestDTO
+): Promise<BackendFinancialScenarioDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/scenarios/simulate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to simulate scenario for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialScenarioDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to simulate scenario');
   return json.data;
 }

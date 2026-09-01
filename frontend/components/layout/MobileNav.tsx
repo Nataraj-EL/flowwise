@@ -48,6 +48,7 @@ export const MobileNav: React.FC = () => {
     { name: 'Financial Goals', href: '/dashboard/goals', icon: Target, disabled: false },
     { name: 'Decision History', href: '/dashboard/decisions', icon: History, disabled: false },
     { name: 'Pattern Insights', href: '/dashboard/insights', icon: Sparkles, disabled: false },
+    { name: 'Scenarios & Forecast', href: '/dashboard/scenarios', icon: LineChart, disabled: false },
     { name: 'Reconciliation', href: '/dashboard/reconciliation', icon: CheckSquare, disabled: false },
     { name: 'Action Center', href: '/dashboard/actions', icon: Zap, disabled: false },
     { name: 'AI Evaluation', href: '/dashboard/evaluation', icon: Activity, disabled: false },
