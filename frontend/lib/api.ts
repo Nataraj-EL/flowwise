@@ -2115,3 +2115,134 @@ export async function archiveScenario(
   if (!json.success) throw new Error(json.error || 'Failed to archive scenario');
   return json.data;
 }
+
+// Sprint 37: Financial Decision Intelligence Interfaces & API Helpers
+export interface BackendFinancialDecisionOptionDTO {
+  id: number;
+  decisionId: number;
+  optionKey: string;
+  optionType: string;
+  sourceId?: number;
+  optionScore: number;
+  riskScore: number;
+  impactScore: number;
+  urgencyScore: number;
+  confidenceStatus: 'HIGH' | 'MODERATE' | 'LIMITED' | 'INSUFFICIENT_DATA';
+  expectedBenefit: string;
+  riskIfIgnored: string;
+  rankOrder: number;
+  evidenceMetrics: string;
+}
+
+export interface BackendFinancialDecisionDTO {
+  id: number;
+  merchantId: number;
+  decisionKey: string;
+  decisionType: string;
+  title: string;
+  recommendation?: string;
+  status: 'DRAFT' | 'RECOMMENDED' | 'ACKNOWLEDGED' | 'COMPLETED' | 'DISMISSED' | 'ARCHIVED';
+  decisionScore: number;
+  riskScore: number;
+  impactScore: number;
+  urgencyScore: number;
+  confidenceScore: number;
+  expectedBenefit: string;
+  riskIfIgnored: string;
+  selectedScenarioId?: number;
+  selectedPlanId?: number;
+  selectedInterventionId?: number;
+  evidenceMetrics: string;
+  assumptions: string;
+  tradeoffs: string;
+  confidenceStatus: 'HIGH' | 'MODERATE' | 'LIMITED' | 'INSUFFICIENT_DATA';
+  options: BackendFinancialDecisionOptionDTO[];
+  evaluatedAt: string;
+}
+
+export interface BackendFinancialDecisionSummaryDTO {
+  merchantId: number;
+  totalEvaluatedDecisionsCount: number;
+  topDecisionScore: number;
+  topRecommendationTitle: string;
+  topRecommendation: BackendFinancialDecisionDTO;
+  decisions: BackendFinancialDecisionDTO[];
+  summaryExplanation: string;
+  advisoryNotice: string;
+}
+
+export async function fetchFinancialDecisions(
+  merchantId: number | string
+): Promise<BackendFinancialDecisionSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/financial-decisions`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch financial decisions for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialDecisionSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve financial decision summary');
+  return json.data;
+}
+
+export async function fetchFinancialDecisionById(
+  merchantId: number | string,
+  decisionId: number | string
+): Promise<BackendFinancialDecisionDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/financial-decisions/${decisionId}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch financial decision ID ${decisionId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialDecisionDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve financial decision');
+  return json.data;
+}
+
+export async function evaluateFinancialDecisions(
+  merchantId: number | string
+): Promise<BackendFinancialDecisionSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/financial-decisions/evaluate`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to evaluate financial decisions for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialDecisionSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to evaluate financial decisions');
+  return json.data;
+}
+
+export async function acknowledgeFinancialDecision(
+  merchantId: number | string,
+  decisionId: number | string
+): Promise<BackendFinancialDecisionDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/financial-decisions/${decisionId}/acknowledge`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to acknowledge decision ID ${decisionId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialDecisionDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to acknowledge decision');
+  return json.data;
+}
+
+export async function completeFinancialDecision(
+  merchantId: number | string,
+  decisionId: number | string
+): Promise<BackendFinancialDecisionDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/financial-decisions/${decisionId}/complete`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to complete decision ID ${decisionId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialDecisionDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to complete decision');
+  return json.data;
+}
+
+export async function dismissFinancialDecision(
+  merchantId: number | string,
+  decisionId: number | string
+): Promise<BackendFinancialDecisionDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/financial-decisions/${decisionId}/dismiss`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to dismiss decision ID ${decisionId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialDecisionDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to dismiss decision');
+  return json.data;
+}

@@ -52,9 +52,9 @@ public class FinancialDecisionService {
                 throw new IllegalArgumentException("Action ID " + request.getActionId() + " does not belong to merchant " + merchantId);
             }
             // Check duplicate active decision for action
-            Optional<FinancialDecision> existing = decisionRepository.findByMerchantIdAndActionIdAndDecisionStatusIn(
+            List<FinancialDecision> existing = decisionRepository.findByMerchantIdAndActionIdAndDecisionStatusIn(
                     merchantId, request.getActionId(), List.of("PENDING", "ACCEPTED"));
-            if (existing.isPresent()) {
+            if (!existing.isEmpty()) {
                 throw new IllegalStateException("An active decision already exists for Action ID: " + request.getActionId());
             }
         }
@@ -67,9 +67,9 @@ public class FinancialDecisionService {
                 throw new IllegalArgumentException("Goal ID " + request.getGoalId() + " does not belong to merchant " + merchantId);
             }
             // Check duplicate active decision for goal
-            Optional<FinancialDecision> existing = decisionRepository.findByMerchantIdAndGoalIdAndDecisionStatusIn(
+            List<FinancialDecision> existing = decisionRepository.findByMerchantIdAndGoalIdAndDecisionStatusIn(
                     merchantId, request.getGoalId(), List.of("PENDING", "ACCEPTED"));
-            if (existing.isPresent()) {
+            if (!existing.isEmpty()) {
                 throw new IllegalStateException("An active decision already exists for Goal ID: " + request.getGoalId());
             }
         }

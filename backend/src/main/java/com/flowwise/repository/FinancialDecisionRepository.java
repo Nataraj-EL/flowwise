@@ -9,9 +9,13 @@ import java.util.Optional;
 
 @Repository
 public interface FinancialDecisionRepository extends JpaRepository<FinancialDecision, Long> {
+    List<FinancialDecision> findByMerchantIdOrderByCreatedAtDesc(Long merchantId);
+    List<FinancialDecision> findByMerchantIdOrderByEvaluatedAtDesc(Long merchantId);
     List<FinancialDecision> findByMerchantIdOrderByDecisionDateDescCreatedAtDesc(Long merchantId);
-    List<FinancialDecision> findByMerchantIdAndDecisionStatusOrderByDecisionDateDesc(Long merchantId, String decisionStatus);
+    List<FinancialDecision> findByMerchantIdAndDecisionStatus(Long merchantId, String decisionStatus);
+    List<FinancialDecision> findByMerchantIdAndActionIdAndDecisionStatusIn(Long merchantId, Long actionId, List<String> statuses);
+    List<FinancialDecision> findByMerchantIdAndGoalIdAndDecisionStatusIn(Long merchantId, Long goalId, List<String> statuses);
+    List<FinancialDecision> findByMerchantIdAndStatusOrderByEvaluatedAtDesc(Long merchantId, String status);
     Optional<FinancialDecision> findByIdAndMerchantId(Long id, Long merchantId);
-    Optional<FinancialDecision> findByMerchantIdAndActionIdAndDecisionStatusIn(Long merchantId, Long actionId, List<String> statuses);
-    Optional<FinancialDecision> findByMerchantIdAndGoalIdAndDecisionStatusIn(Long merchantId, Long goalId, List<String> statuses);
+    Optional<FinancialDecision> findByMerchantIdAndDecisionKey(Long merchantId, String decisionKey);
 }
