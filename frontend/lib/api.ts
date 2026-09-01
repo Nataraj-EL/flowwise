@@ -302,6 +302,38 @@ export interface BackendActionSummaryDTO {
   actions: BackendFinancialActionDTO[];
 }
 
+export interface BackendReceivableDTO {
+  id: number;
+  merchantId: number;
+  counterparty: string;
+  invoiceReference: string;
+  invoiceAmount: number;
+  amountReceived: number;
+  outstandingAmount: number;
+  invoiceDate: string;
+  dueDate: string;
+  status: 'CURRENT' | 'OVERDUE_1_30' | 'OVERDUE_31_60' | 'OVERDUE_60_PLUS' | 'PAID';
+  daysOverdue: number;
+}
+
+export interface BackendReceivablesSummaryDTO {
+  totalOutstanding: number;
+  currentReceivables: number;
+  overdue1To30Days: number;
+  overdue31To60Days: number;
+  overdue60PlusDays: number;
+  totalOverdue: number;
+  collectionRatePct: number;
+  overdueRatioPct: number;
+  largestOutstandingCounterparty: string;
+  largestCounterpartyAmount: number;
+  concentrationRatioPct: number;
+  estimatedNearTermCollection: number;
+  totalInvoicesCount: number;
+  overdueInvoicesCount: number;
+  receivables: BackendReceivableDTO[];
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -573,5 +605,21 @@ export async function resolveAction(actionId: number | string): Promise<BackendF
   if (!res.ok) throw new Error(`Failed to resolve action ID ${actionId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendFinancialActionDTO> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to resolve action');
+  return json.data;
+}
+
+export async function fetchMerchantReceivables(merchantId: number | string): Promise<BackendReceivableDTO[]> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/receivables`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch receivables for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendReceivableDTO[]> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve receivables');
+  return json.data;
+}
+
+export async function fetchMerchantReceivablesSummary(merchantId: number | string): Promise<BackendReceivablesSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/receivables/summary`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch receivables summary for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendReceivablesSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve receivables summary');
   return json.data;
 }

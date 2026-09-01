@@ -22,17 +22,20 @@ public class FinancialActionService {
     private final CashFlowService cashFlowService;
     private final BusinessHealthService healthService;
     private final TemporalIntelligenceService temporalService;
+    private final ReceivablesService receivablesService;
 
     public FinancialActionService(MerchantRepository merchantRepository,
                                   FinancialActionRepository actionRepository,
                                   CashFlowService cashFlowService,
                                   BusinessHealthService healthService,
-                                  TemporalIntelligenceService temporalService) {
+                                  TemporalIntelligenceService temporalService,
+                                  ReceivablesService receivablesService) {
         this.merchantRepository = merchantRepository;
         this.actionRepository = actionRepository;
         this.cashFlowService = cashFlowService;
         this.healthService = healthService;
         this.temporalService = temporalService;
+        this.receivablesService = receivablesService;
     }
 
     public ActionSummaryDTO getMerchantActions(Long merchantId) {
@@ -126,7 +129,37 @@ public class FinancialActionService {
                 );
             }
 
-            // Rule 4: Low Priority Opportunity / Healthy Position
+            // Rule 4: High/Medium Priority Receivables Overdue Alert
+            ReceivablesSummaryDTO recv = receivablesService.getReceivablesSummary(merchantId);
+            if (recv.getTotalOverdue() != null && recv.getTotalOverdue().compareTo(BigDecimal.ZERO) > 0) {
+                String severity = recv.getOverdue60PlusDays() != null && recv.getOverdue60PlusDays().compareTo(new BigDecimal("50000.00")) > 0 ? "HIGH" : "MEDIUM";
+                createOrUpdateAction(
+                        merchantId,
+                        "ACT-RECEIVABLES-OVERDUE",
+                        "Overdue B2B Invoices (" + recv.getOverdueInvoicesCount() + " Overdue)",
+                        severity,
+                        "RECEIVABLES_CONCENTRATION",
+                        "₹" + recv.getTotalOverdue() + " in B2B customer invoices are overdue across aging buckets. Collecting these funds will boost near-term liquidity by ₹" + recv.getEstimatedNearTermCollection() + ".",
+                        "Total Overdue: ₹" + recv.getTotalOverdue() + " | Overdue Ratio: " + recv.getOverdueRatioPct() + "% | 60+ Days: ₹" + recv.getOverdue60PlusDays(),
+                        "Issue formal payment reminders to top overdue debtors starting with " + recv.getLargestOutstandingCounterparty() + "."
+                );
+            }
+
+            // Rule 5: Medium Priority Receivables Concentration Risk
+            if (recv.getConcentrationRatioPct() != null && recv.getConcentrationRatioPct().compareTo(new BigDecimal("40.0")) > 0) {
+                createOrUpdateAction(
+                        merchantId,
+                        "ACT-RECEIVABLES-CONCENTRATION",
+                        "Receivables Counterparty Concentration (" + recv.getConcentrationRatioPct() + "%)",
+                        "MEDIUM",
+                        "RECEIVABLES_CONCENTRATION",
+                        recv.getConcentrationRatioPct() + "% of total outstanding receivables (₹" + recv.getLargestCounterpartyAmount() + ") are concentrated with " + recv.getLargestOutstandingCounterparty() + ".",
+                        "Largest Counterparty: " + recv.getLargestOutstandingCounterparty() + " | Amount: ₹" + recv.getLargestCounterpartyAmount() + " | Concentration Ratio: " + recv.getConcentrationRatioPct() + "%",
+                        "Diversify credit terms and establish milestone payment schedules for major B2B distributors."
+                );
+            }
+
+            // Rule 6: Low Priority Opportunity / Healthy Position
             if (health.getOverallScore() >= 70) {
                 createOrUpdateAction(
                         merchantId,

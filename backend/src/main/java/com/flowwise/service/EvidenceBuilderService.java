@@ -21,6 +21,7 @@ public class EvidenceBuilderService {
     private final TemporalIntelligenceService temporalService;
     private final ForecastingService forecastingService;
     private final FinancialActionService actionService;
+    private final ReceivablesService receivablesService;
 
     public EvidenceBuilderService(MerchantRepository merchantRepository,
                                   MerchantService merchantService,
@@ -29,7 +30,8 @@ public class EvidenceBuilderService {
                                   TransactionService transactionService,
                                   TemporalIntelligenceService temporalService,
                                   ForecastingService forecastingService,
-                                  FinancialActionService actionService) {
+                                  FinancialActionService actionService,
+                                  ReceivablesService receivablesService) {
         this.merchantRepository = merchantRepository;
         this.merchantService = merchantService;
         this.cashFlowService = cashFlowService;
@@ -38,6 +40,7 @@ public class EvidenceBuilderService {
         this.temporalService = temporalService;
         this.forecastingService = forecastingService;
         this.actionService = actionService;
+        this.receivablesService = receivablesService;
     }
 
     public FinancialEvidenceSummaryDTO buildEvidenceSummary(Long merchantId, String question) {
@@ -52,7 +55,9 @@ public class EvidenceBuilderService {
         String qLower = question.toLowerCase(Locale.ROOT);
         
         // 1. Detect Intent Category
-        if (qLower.contains("afford") || qLower.contains("inventory") || qLower.contains("80,000") || qLower.contains("80000") || qLower.contains("buy") || qLower.contains("purchase")) {
+        if (qLower.contains("owed") || qLower.contains("receivable") || qLower.contains("unpaid") || qLower.contains("debtor") || qLower.contains("concentration")) {
+            return buildReceivablesEvidence(merchantId, question);
+        } else if (qLower.contains("afford") || qLower.contains("inventory") || qLower.contains("80,000") || qLower.contains("80000") || qLower.contains("buy") || qLower.contains("purchase")) {
             return buildAffordabilityEvidence(merchantId, question);
         } else if (qLower.contains("focus") || qLower.contains("risk") || qLower.contains("do") || qLower.contains("action") || qLower.contains("recommend") || qLower.contains("priority") || qLower.contains("this week")) {
             return buildActionCenterEvidence(merchantId, question);
@@ -215,6 +220,33 @@ public class EvidenceBuilderService {
                 assumptions,
                 actionSummary.getHighPriorityCount() > 0 ? "ACTION_REQUIRED" : "HEALTHY",
                 "Primary Focus Recommendation: " + topRecommendation
+        );
+    }
+
+    private FinancialEvidenceSummaryDTO buildReceivablesEvidence(Long merchantId, String question) {
+        ReceivablesSummaryDTO recv = receivablesService.getReceivablesSummary(merchantId);
+
+        List<EvidenceItemDTO> items = new ArrayList<>();
+        items.add(new EvidenceItemDTO("Total Outstanding Receivables", recv.getTotalOutstanding(), "INR", "Receivables Engine", "Active Invoices Ledger", "ACTUAL", "Sum of unpaid balances owed by B2B counterparties", "HIGH"));
+        items.add(new EvidenceItemDTO("Total Overdue Invoices", recv.getTotalOverdue(), "INR", "Aging Analysis Engine", "Overdue Buckets", "ACTUAL", "Sum of overdue balances (1-30, 31-60, 60+ days)", "HIGH"));
+        items.add(new EvidenceItemDTO("Overdue Ratio", recv.getOverdueRatioPct(), "%", "Aging Analysis Engine", "Current Ledger", "ACTUAL", "Percentage of receivables past due date", "HIGH"));
+        items.add(new EvidenceItemDTO("Counterparty Concentration Ratio", recv.getConcentrationRatioPct(), "%", "Concentration Engine", "Debtor Analysis", "ACTUAL", "Percentage of outstanding held by largest counterparty (" + recv.getLargestOutstandingCounterparty() + ")", "HIGH"));
+        items.add(new EvidenceItemDTO("Near-Term Collection Potential", recv.getEstimatedNearTermCollection(), "INR", "Cash Flow Impact Engine", "30-Day Window", "ESTIMATE", "Current receivables + 1-30 day overdue collection potential", "HIGH"));
+
+        List<String> assumptions = Arrays.asList(
+                "Calculated using exact due dates and settled payment deductions.",
+                "Does not assume speculative credit scores or unverified probability models."
+        );
+
+        String conclusion = "Total outstanding receivables stand at ₹" + recv.getTotalOutstanding() + ", of which ₹" + recv.getTotalOverdue() + " (" + recv.getOverdueRatioPct() + "%) is overdue across " + recv.getOverdueInvoicesCount() + " invoices. " + recv.getConcentrationRatioPct() + "% is concentrated with " + recv.getLargestOutstandingCounterparty() + ". Collecting near-term balances can yield ₹" + recv.getEstimatedNearTermCollection() + " in liquid cash.";
+
+        return new FinancialEvidenceSummaryDTO(
+                question,
+                "RECEIVABLES",
+                items,
+                assumptions,
+                recv.getOverdueRatioPct().compareTo(new BigDecimal("30.0")) > 0 ? "ATTENTION_REQUIRED" : "HEALTHY",
+                conclusion
         );
     }
 }
