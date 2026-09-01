@@ -58,6 +58,7 @@ export const Sidebar: React.FC = () => {
     { name: 'Financial Anomalies', href: '/dashboard/anomalies', icon: Zap, disabled: false },
     { name: 'Signal Correlation', href: '/dashboard/correlations', icon: Layers, disabled: false },
     { name: 'Interventions', href: '/dashboard/interventions', icon: ListChecks, disabled: false },
+    { name: 'Intervention Outcomes', href: '/dashboard/intervention-outcomes', icon: Target, disabled: false },
     { name: 'Pattern Insights', href: '/dashboard/insights', icon: Sparkles, disabled: false },
     { name: 'Scenarios & Forecast', href: '/dashboard/scenarios', icon: LineChart, disabled: false },
     { name: 'Reconciliation', href: '/dashboard/reconciliation', icon: CheckSquare, disabled: false },
