@@ -23,8 +23,8 @@ export const MobileNav: React.FC = () => {
 
   const navItems = [
     { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Transactions', href: '/dashboard/transactions', icon: ArrowRightLeft, disabled: false },
     { name: 'Cash Flow', href: '/dashboard/cashflow', icon: TrendingUp, disabled: true },
-    { name: 'Transactions', href: '/dashboard/transactions', icon: ArrowRightLeft, disabled: true },
     { name: 'Health & Risk', href: '/dashboard/health', icon: ShieldAlert, disabled: true },
     { name: 'Inventory', href: '/dashboard/inventory', icon: Package, disabled: true },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings, disabled: true },
