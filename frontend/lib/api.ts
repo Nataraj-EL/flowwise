@@ -2335,3 +2335,119 @@ export async function evaluateDecisionOutcome(
   if (!json.success) throw new Error(json.error || 'Failed to evaluate decision outcome');
   return json.data;
 }
+
+// Sprint 39: Decision Portfolio & Optimization Interfaces & API Helpers
+export interface BackendFinancialDecisionPortfolioItemDTO {
+  id: number;
+  portfolioId: number;
+  itemKey: string;
+  decisionType: string;
+  title: string;
+  description: string;
+  priorityScore: number;
+  riskProtectionScore: number;
+  financialImpactScore: number;
+  urgencyScore: number;
+  historicalEffectivenessScore: number;
+  goalAlignmentScore: number;
+  confidenceStatus: 'HIGH' | 'MODERATE' | 'LIMITED' | 'INSUFFICIENT_DATA';
+  expectedBenefit: string;
+  riskIfIgnored: string;
+  rankOrder: number;
+  evidenceMetrics: string;
+}
+
+export interface BackendFinancialDecisionPortfolioDTO {
+  id: number;
+  merchantId: number;
+  portfolioKey: string;
+  horizon: '7D' | '30D' | '60D' | '90D';
+  status: 'DRAFT' | 'ACTIVE' | 'COMPLETED' | 'ARCHIVED';
+  overallPortfolioScore: number;
+  riskScore: number;
+  impactScore: number;
+  urgencyScore: number;
+  confidenceScore: number;
+  primaryFocusArea: string;
+  expectedBenefit: string;
+  riskIfIgnored: string;
+  evidenceMetrics: string;
+  assumptions: string;
+  items: BackendFinancialDecisionPortfolioItemDTO[];
+  evaluatedAt: string;
+}
+
+export interface BackendFinancialDecisionPortfolioSummaryDTO {
+  merchantId: number;
+  totalPortfoliosCount: number;
+  activePortfolio: BackendFinancialDecisionPortfolioDTO | null;
+  portfolios: BackendFinancialDecisionPortfolioDTO[];
+  summaryExplanation: string;
+  advisoryNotice: string;
+}
+
+export async function fetchFinancialDecisionPortfolioSummary(
+  merchantId: number | string,
+  horizon?: string
+): Promise<BackendFinancialDecisionPortfolioSummaryDTO> {
+  const queryString = horizon ? `?horizon=${horizon}` : '';
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/decision-portfolios${queryString}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch decision portfolio summary for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialDecisionPortfolioSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve decision portfolio summary');
+  return json.data;
+}
+
+export async function fetchFinancialDecisionPortfolioById(
+  merchantId: number | string,
+  portfolioId: number | string
+): Promise<BackendFinancialDecisionPortfolioDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/decision-portfolios/${portfolioId}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch portfolio ID ${portfolioId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialDecisionPortfolioDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve decision portfolio');
+  return json.data;
+}
+
+export async function evaluateFinancialDecisionPortfolio(
+  merchantId: number | string,
+  horizon?: string
+): Promise<BackendFinancialDecisionPortfolioDTO> {
+  const queryString = horizon ? `?horizon=${horizon}` : '';
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/decision-portfolios/evaluate${queryString}`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to evaluate decision portfolio for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialDecisionPortfolioDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to evaluate decision portfolio');
+  return json.data;
+}
+
+export async function activateFinancialDecisionPortfolio(
+  merchantId: number | string,
+  portfolioId: number | string
+): Promise<BackendFinancialDecisionPortfolioDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/decision-portfolios/${portfolioId}/activate`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to activate portfolio ID ${portfolioId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialDecisionPortfolioDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to activate decision portfolio');
+  return json.data;
+}
+
+export async function archiveFinancialDecisionPortfolio(
+  merchantId: number | string,
+  portfolioId: number | string
+): Promise<BackendFinancialDecisionPortfolioDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/decision-portfolios/${portfolioId}/archive`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to archive portfolio ID ${portfolioId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendFinancialDecisionPortfolioDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to archive decision portfolio');
+  return json.data;
+}
