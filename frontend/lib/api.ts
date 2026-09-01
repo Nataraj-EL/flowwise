@@ -139,6 +139,42 @@ export interface BackendTemporalSummaryDTO {
   historyMonthCount: number;
 }
 
+export interface BackendPeriodProjectionDTO {
+  days: number;
+  projectedInflow: number;
+  projectedOutflow: number;
+  projectedEndingCash: number;
+  projectedRunwayMonths: number;
+}
+
+export interface BackendForecastSummaryDTO {
+  currentAvailableCash: number;
+  averageMonthlyInflow: number;
+  averageMonthlyOutflow: number;
+  projections: BackendPeriodProjectionDTO[];
+  assumptions: string[];
+  estimate: boolean;
+}
+
+export interface BackendScenarioRequestDTO {
+  amount: number;
+  category: string;
+}
+
+export interface BackendScenarioResultDTO {
+  requestedAmount: number;
+  category: string;
+  baselineEndingCash: number;
+  scenarioEndingCash: number;
+  baselineRunwayMonths: number;
+  scenarioRunwayMonths: number;
+  cashImpact: number;
+  runwayImpactMonths: number;
+  riskStatus: 'FEASIBLE' | 'CAUTION' | 'HIGH_RISK';
+  assumptions: string[];
+  estimate: boolean;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -251,5 +287,29 @@ export async function fetchMerchantCategoryMovements(merchantId: number | string
   if (!res.ok) throw new Error(`Failed to fetch category movements for merchant ID ${merchantId} (HTTP ${res.status})`);
   const json: ApiResponse<BackendCategoryMovementDTO[]> = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to retrieve category movements');
+  return json.data;
+}
+
+export async function fetchMerchantForecast(merchantId: number | string): Promise<BackendForecastSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/forecast`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Failed to fetch forecast summary for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendForecastSummaryDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to retrieve forecast summary');
+  return json.data;
+}
+
+export async function simulateMerchantScenario(
+  merchantId: number | string,
+  scenario: BackendScenarioRequestDTO
+): Promise<BackendScenarioResultDTO> {
+  const res = await fetch(`${API_BASE_URL}/merchants/${merchantId}/forecast/scenario`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(scenario),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`Failed to simulate scenario for merchant ID ${merchantId} (HTTP ${res.status})`);
+  const json: ApiResponse<BackendScenarioResultDTO> = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to simulate scenario');
   return json.data;
 }

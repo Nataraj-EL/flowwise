@@ -20,6 +20,7 @@ public class FlowwiseIntelligenceService {
     private final BusinessHealthService healthService;
     private final TransactionService transactionService;
     private final TemporalIntelligenceService temporalService;
+    private final ForecastingService forecastingService;
     private final OllamaClient ollamaClient;
 
     private static final String AI_DISCLAIMER = "Flowwise Intelligence responses are grounded informational business insights. Answers do not constitute formal bank credit approvals or lending decisions.";
@@ -30,6 +31,7 @@ public class FlowwiseIntelligenceService {
                                        BusinessHealthService healthService,
                                        TransactionService transactionService,
                                        TemporalIntelligenceService temporalService,
+                                       ForecastingService forecastingService,
                                        OllamaClient ollamaClient) {
         this.merchantRepository = merchantRepository;
         this.merchantService = merchantService;
@@ -37,6 +39,7 @@ public class FlowwiseIntelligenceService {
         this.healthService = healthService;
         this.transactionService = transactionService;
         this.temporalService = temporalService;
+        this.forecastingService = forecastingService;
         this.ollamaClient = ollamaClient;
     }
 
@@ -49,12 +52,15 @@ public class FlowwiseIntelligenceService {
             question = "How is my cash flow?";
         }
 
-        // 1. Retrieve Financial & Temporal Evidence Context from Services
+        // 1. Retrieve Financial, Temporal, and Forecasting Evidence Context
         MerchantDetailDTO merchantDetail = merchantService.getMerchantDetail(merchantId);
         CashFlowSummaryDTO cashFlow = cashFlowService.getCashFlowSummary(merchantId);
         BusinessHealthDTO health = healthService.calculateBusinessHealth(merchantId);
         TransactionSummaryDTO txSummary = transactionService.getTransactionSummary(merchantId);
         TemporalSummaryDTO temporal = temporalService.getTemporalSummary(merchantId);
+        
+        // Default Scenario Simulation for ₹80,000 inventory request
+        ScenarioResultDTO scenario = forecastingService.simulateScenario(merchantId, new ScenarioRequestDTO(new BigDecimal("80000"), "INVENTORY"));
 
         Map<String, Object> evidence = new LinkedHashMap<>();
         evidence.put("businessName", merchantDetail.getMerchant().getBusinessName());
@@ -69,13 +75,17 @@ public class FlowwiseIntelligenceService {
         evidence.put("healthScore", health.getOverallScore());
         evidence.put("healthStatus", health.getHealthStatus());
 
-        // Temporal evidence
+        // Temporal & Scenario Evidence
         evidence.put("currentMonth", temporal.getCurrentMonth());
         evidence.put("previousMonth", temporal.getPreviousMonth());
         evidence.put("inflowChangePct", temporal.getInflowChangePct());
         evidence.put("outflowChangePct", temporal.getOutflowChangePct());
         evidence.put("netCashChangePct", temporal.getNetCashChangePct());
-        evidence.put("anomalies", temporal.getAnomalies());
+        
+        evidence.put("scenarioAmount", scenario.getRequestedAmount());
+        evidence.put("scenarioEndingCash", scenario.getScenarioEndingCash());
+        evidence.put("scenarioRunwayMonths", scenario.getScenarioRunwayMonths());
+        evidence.put("scenarioRiskStatus", scenario.getRiskStatus());
 
         // Top Expense Categories
         List<CategoryTotalDTO> categories = txSummary.getCategoryTotals();
@@ -97,8 +107,8 @@ public class FlowwiseIntelligenceService {
         if (isAiActive) {
             answer = aiResult.get();
         } else {
-            // Grounded Fallback Answer generated directly from Temporal Evidence Context
-            answer = buildGroundedFallbackAnswer(question, evidence, temporal);
+            // Grounded Fallback Answer generated directly from Evidence Context
+            answer = buildGroundedFallbackAnswer(question, evidence, temporal, scenario);
         }
 
         return new IntelligenceResponseDTO(
@@ -121,25 +131,30 @@ public class FlowwiseIntelligenceService {
         sb.append("Available Cash Balance: ₹").append(evidence.get("availableCash")).append("\n");
         sb.append("Net Cash Flow: ₹").append(evidence.get("netCashFlow")).append("\n");
         sb.append("Monthly Outflow Burn Rate: ₹").append(evidence.get("monthlyBurnRate")).append("\n");
-        sb.append("Cash Runway: ").append(evidence.get("cashRunwayMonths")).append(" months\n");
+        sb.append("Baseline Cash Runway: ").append(evidence.get("cashRunwayMonths")).append(" months\n");
         sb.append("Business Health Score: ").append(evidence.get("healthScore")).append("/100 (Status: ").append(evidence.get("healthStatus")).append(")\n");
-        sb.append("Current Month (").append(evidence.get("currentMonth")).append(") vs Previous Month (").append(evidence.get("previousMonth")).append("):\n");
-        sb.append("  - Inflow MoM Change: ").append(evidence.get("inflowChangePct")).append("%\n");
-        sb.append("  - Outflow MoM Change: ").append(evidence.get("outflowChangePct")).append("%\n");
-        sb.append("  - Net Cash MoM Change: ").append(evidence.get("netCashChangePct")).append("%\n");
-        sb.append("Top Expense Category: ").append(evidence.get("topExpenseCategory")).append(" (₹").append(evidence.get("topExpenseAmount")).append(")\n\n");
+        sb.append("Scenario Simulation (₹").append(evidence.get("scenarioAmount")).append(" Inventory Purchase):\n");
+        sb.append("  - Post-Purchase Cash: ₹").append(evidence.get("scenarioEndingCash")).append("\n");
+        sb.append("  - Post-Purchase Runway: ").append(evidence.get("scenarioRunwayMonths")).append(" months\n");
+        sb.append("  - Risk Assessment: ").append(evidence.get("scenarioRiskStatus")).append("\n\n");
         sb.append("--- QUESTION ---\n");
         sb.append(question).append("\n\n");
         sb.append("Provide a clear, grounded 2-3 sentence answer:");
         return sb.toString();
     }
 
-    private String buildGroundedFallbackAnswer(String question, Map<String, Object> evidence, TemporalSummaryDTO temporal) {
+    private String buildGroundedFallbackAnswer(String question, Map<String, Object> evidence, TemporalSummaryDTO temporal, ScenarioResultDTO scenario) {
         String qLower = question.toLowerCase(Locale.ROOT);
         BigDecimal availableCash = (BigDecimal) evidence.get("availableCash");
         BigDecimal payables = (BigDecimal) evidence.get("upcomingPayables");
         BigDecimal netCash = (BigDecimal) evidence.get("netCashFlow");
         BigDecimal runway = (BigDecimal) evidence.get("cashRunwayMonths");
+
+        if (qLower.contains("afford") || qLower.contains("inventory") || qLower.contains("80,000") || qLower.contains("80000")) {
+            return "Yes, Apex Retail Solutions [DEMO] can afford the ₹" + scenario.getRequestedAmount() + " inventory purchase (Assessment: " 
+                    + scenario.getRiskStatus() + "). Deducting the purchase leaves ₹" + scenario.getScenarioEndingCash() 
+                    + " in liquid cash reserves, supporting a scenario cash runway of " + scenario.getScenarioRunwayMonths() + " months.";
+        }
 
         if (qLower.contains("health") || qLower.contains("score") || qLower.contains("rating")) {
             int score = (int) evidence.get("healthScore");
@@ -151,8 +166,7 @@ public class FlowwiseIntelligenceService {
         if (qLower.contains("drop") || qLower.contains("lower") || qLower.contains("reduced") || qLower.contains("changed") || qLower.contains("compare")) {
             return "Compared to " + temporal.getPreviousMonth() + ", monthly outflows changed by " 
                     + temporal.getOutflowChangePct() + "% (" + temporal.getOutflowDirection() + "), while inflows changed by " 
-                    + temporal.getInflowChangePct() + "%. Net cash movement shifted by " + temporal.getNetCashChangePct() + "%. "
-                    + (temporal.getAnomalies().isEmpty() ? "" : temporal.getAnomalies().get(0));
+                    + temporal.getInflowChangePct() + "%. Net cash movement shifted by " + temporal.getNetCashChangePct() + "%.";
         }
 
         if (qLower.contains("increase") || qLower.contains("highest") || qLower.contains("expense")) {
@@ -166,19 +180,6 @@ public class FlowwiseIntelligenceService {
             String trendStatus = temporal.getNetCashChangePct().compareTo(BigDecimal.ZERO) >= 0 ? "improving" : "contracting";
             return "Your cash flow trend is currently " + trendStatus + " with a MoM net cash position shift of " 
                     + temporal.getNetCashChangePct() + "%. You maintain a healthy " + runway + "-month cash runway based on current burn rate.";
-        }
-
-        if (qLower.contains("afford") || qLower.contains("inventory") || qLower.contains("80,000") || qLower.contains("80000")) {
-            BigDecimal requestAmt = new BigDecimal("80000");
-            BigDecimal remainingAfterPayables = availableCash.subtract(payables);
-            if (remainingAfterPayables.compareTo(requestAmt) >= 0) {
-                return "Yes, Apex Retail Solutions [DEMO] can afford the ₹80,000 inventory purchase. You currently hold ₹" 
-                        + availableCash + " in available cash across 3 connected accounts, leaving ₹" 
-                        + remainingAfterPayables + " even after reserving ₹" + payables + " for upcoming payable pressure.";
-            } else {
-                return "Caution advised: Purchasing ₹80,000 in inventory would strain liquidity. While available cash is ₹" 
-                        + availableCash + ", reserving ₹" + payables + " for pending payables leaves insufficient liquidity.";
-            }
         }
 
         // Default Grounded Overview

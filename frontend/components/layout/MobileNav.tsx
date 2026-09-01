@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge';
 import {
   LayoutDashboard,
   TrendingUp,
+  LineChart,
   ArrowRightLeft,
   ShieldAlert,
   Package,
@@ -26,6 +27,7 @@ export const MobileNav: React.FC = () => {
     { name: 'Transactions', href: '/dashboard/transactions', icon: ArrowRightLeft, disabled: false },
     { name: 'Cash Flow', href: '/dashboard/cashflow', icon: TrendingUp, disabled: false },
     { name: 'Health & Risk', href: '/dashboard/health', icon: ShieldAlert, disabled: false },
+    { name: 'Forecast & Scenarios', href: '/dashboard/forecast', icon: LineChart, disabled: false },
     { name: 'Inventory', href: '/dashboard/inventory', icon: Package, disabled: true },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings, disabled: true },
   ];
