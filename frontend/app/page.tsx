@@ -8,8 +8,8 @@ import { TrustStrip } from '@/components/landing/TrustStrip';
 import { FinalCTA } from '@/components/landing/FinalCTA';
 
 export const metadata = {
-  title: 'Flowwise | Financial Intelligence for Modern Merchants',
-  description: 'Know your cash. Grow your business. Flowwise turns fragmented bank accounts, receivables, and payables into one intelligent financial command center.',
+  title: 'Flowwise | Simple Cash Flow Intelligence for Business Owners',
+  description: 'Take the stress out of your business cash flow. Flowwise automatically tracks your cash, unpaid invoices, and upcoming bills in one clean dashboard.',
 };
 
 export default function LandingPage() {
