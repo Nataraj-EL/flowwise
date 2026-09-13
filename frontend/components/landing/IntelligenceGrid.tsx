@@ -30,8 +30,8 @@ export const IntelligenceGrid: React.FC = () => {
   ];
 
   return (
-    <section id="how-it-works" className="py-24 bg-[#0E1424] border-t border-slate-800/80">
-      <div className="max-w-6xl mx-auto px-6 lg:px-8 space-y-16">
+    <section id="how-it-works" className="py-20 md:py-28 bg-[#0F172A] border-t border-slate-800">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 sm:space-y-16">
         <div className="text-center space-y-4 max-w-3xl mx-auto">
           <span className="text-xs font-mono font-bold tracking-widest text-cyan-400 uppercase bg-cyan-500/10 px-4 py-1.5 rounded-full border border-cyan-500/20">
             HOW FLOWWISE HELPS YOU
@@ -39,32 +39,32 @@ export const IntelligenceGrid: React.FC = () => {
           <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
             4 simple ways Flowwise helps your business grow.
           </h2>
-          <p className="text-slate-300 text-base sm:text-lg font-normal">
+          <p className="text-slate-300 text-base sm:text-lg font-normal leading-relaxed">
             Designed for store owners, merchants, and founders who want financial clarity without complicated accounting software.
           </p>
         </div>
 
-        {/* 2x2 Spaced Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10">
+        {/* 2x2 Clean Spaced Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
           {capabilities.map((item, index) => {
             const Icon = item.icon;
             return (
               <div
                 key={index}
-                className="bg-[#131A2E] border border-slate-800 p-8 sm:p-10 rounded-3xl space-y-6 hover:border-cyan-500/40 transition-all shadow-xl hover:-translate-y-1 group"
+                className="bg-[#1E293B]/80 border border-slate-700/80 p-6 sm:p-8 rounded-3xl space-y-5 hover:border-cyan-500/40 transition-all shadow-xl group flex flex-col justify-between"
               >
-                <div className="flex items-center justify-between">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500/15 via-teal-500/10 to-emerald-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Icon className="w-7 h-7" />
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/15 via-teal-500/10 to-emerald-500/15 border border-cyan-500/30 text-cyan-400 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                    <Icon className="w-6 h-6" />
                   </div>
-                  <span className="text-[11px] font-mono font-bold tracking-wider text-slate-400 bg-[#0B0F19] px-3.5 py-1 rounded-full border border-slate-800">
+                  <span className="text-[11px] font-mono font-bold tracking-wider text-slate-300 bg-[#0F172A] px-3 py-1 rounded-full border border-slate-700 shrink-0">
                     {item.badge}
                   </span>
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="text-2xl font-bold text-white tracking-tight">{item.title}</h3>
-                  <p className="text-slate-300 text-base leading-relaxed">{item.description}</p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight leading-snug">{item.title}</h3>
+                  <p className="text-slate-300 text-sm sm:text-base leading-relaxed">{item.description}</p>
                 </div>
               </div>
             );

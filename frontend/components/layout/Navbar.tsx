@@ -9,26 +9,26 @@ export const Navbar: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full bg-[#0B0F19]/90 backdrop-blur-md border-b border-slate-800/80">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 h-20 flex items-center justify-between">
-        {/* Friendly Brand Wordmark */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
+        {/* Brand Wordmark */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-teal-400 to-emerald-400 p-[1px] shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-teal-400 to-emerald-400 p-[1px] shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform shrink-0">
             <div className="w-full h-full bg-[#0B0F19] rounded-[11px] flex items-center justify-center">
-              <Wallet className="w-5 h-5 text-cyan-400" />
+              <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
             </div>
           </div>
           <div className="flex flex-col">
-            <span className="text-xl font-extrabold tracking-tight text-white font-sans group-hover:text-cyan-400 transition-colors">
+            <span className="text-lg sm:text-xl font-extrabold tracking-tight text-white font-sans group-hover:text-cyan-400 transition-colors">
               FLOWWISE
             </span>
-            <span className="text-[10px] font-medium text-slate-400 tracking-wide -mt-1">
+            <span className="text-[10px] font-medium text-slate-400 tracking-wide hidden sm:block -mt-1">
               Simple Cash Flow for Business
             </span>
           </div>
         </Link>
 
-        {/* Non-Technical Navigation Links */}
-        <nav className="hidden md:flex items-center gap-10 text-sm font-medium text-slate-300">
+        {/* Navigation Links */}
+        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
           <a href="#how-it-works" className="hover:text-white transition-colors">
             How It Works
           </a>
@@ -40,7 +40,7 @@ export const Navbar: React.FC = () => {
           </a>
         </nav>
 
-        {/* Friendly Right CTA Button */}
+        {/* Action Button */}
         <div className="hidden md:flex items-center gap-4">
           <Link
             href="/dashboard"
@@ -61,7 +61,7 @@ export const Navbar: React.FC = () => {
         </button>
       </div>
 
-      {/* Mobile Menu Drawer */}
+      {/* Mobile Drawer */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-[#0F1422] border-b border-slate-800 px-6 pt-4 pb-6 space-y-4 text-sm font-medium">
           <a

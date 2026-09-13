@@ -1,18 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --bg-obsidian: #060709;
-  --bg-panel: #0E1116;
-  --bg-panel-hover: #141820;
-  --bg-panel-active: #1A202C;
+  --bg-obsidian: #0B0F19;
+  --bg-panel: #111827;
+  --bg-panel-hover: #1F2937;
+  --bg-panel-active: #374151;
   --border-subtle: rgba(255, 255, 255, 0.08);
   --border-bright: rgba(255, 255, 255, 0.18);
-  --accent-cyan: #00F0FF;
-  --accent-cyan-glow: rgba(0, 240, 255, 0.25);
-  --accent-emerald: #00E599;
-  --accent-emerald-glow: rgba(0, 229, 153, 0.25);
-  --accent-amber: #FFB800;
-  --accent-rose: #FF4757;
+  --accent-cyan: #06B6D4;
+  --accent-emerald: #10B981;
   --text-primary: #F8FAFC;
   --text-secondary: #94A3B8;
   --text-muted: #64748B;
@@ -27,8 +23,6 @@
   --color-border-bright: var(--border-bright);
   --color-accent-cyan: var(--accent-cyan);
   --color-accent-emerald: var(--accent-emerald);
-  --color-accent-amber: var(--accent-amber);
-  --color-accent-rose: var(--accent-rose);
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-text-muted: var(--text-muted);
@@ -41,8 +35,8 @@
 }
 
 html, body {
-  background-color: var(--bg-obsidian);
-  color: var(--text-primary);
+  background-color: #0B0F19;
+  color: #F8FAFC;
   font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow-x: hidden;
   min-height: 100vh;
@@ -50,67 +44,21 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom Cyber Grid & Glow Utilities */
-.cyber-grid {
-  background-size: 32px 32px;
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-}
-
-.cyber-grid-dense {
-  background-size: 16px 16px;
-  background-image: 
-    linear-gradient(to right, rgba(0, 240, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 240, 255, 0.04) 1px, transparent 1px);
-}
-
-.glow-cyan {
-  box-shadow: 0 0 20px -3px var(--accent-cyan-glow);
-}
-
-.glow-emerald {
-  box-shadow: 0 0 20px -3px var(--accent-emerald-glow);
-}
-
-.text-glow-cyan {
-  text-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
-}
-
-.text-glow-emerald {
-  text-shadow: 0 0 12px rgba(0, 229, 153, 0.5);
-}
-
-.border-cyber {
-  border: 1px solid var(--border-subtle);
-  position: relative;
-}
-
-.border-cyber::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 4px;
-  height: 4px;
-  background: var(--accent-cyan);
-}
-
-/* Custom Scrollbar for Dense Financial Tables */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-obsidian);
+  background: #0B0F19;
 }
 
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.15);
-  border-radius: 2px;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-cyan);
+  background: #06B6D4;
 }
